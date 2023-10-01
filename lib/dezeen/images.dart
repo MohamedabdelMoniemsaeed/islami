@@ -9,4 +9,6 @@ abstract class AppImage {
   static const String Quran = "${pathimage}Screenshot (1).png";
   static const String icsebha = "${pathimage}sebha.png";
   static const String background = "${pathimage}splash.png";
+  static const String bodysebha = "${pathimage}bodyofseb7a.png";
+  static const String headsebha = "${pathimage}headofseb7a.png";
 }
