@@ -3,6 +3,7 @@ import 'package:islami/Screen/HomeTab/Sebha.dart';
 import 'package:islami/Screen/HomeTab/ahadeth.dart';
 import 'package:islami/Screen/HomeTab/quran.dart';
 import 'package:islami/Screen/HomeTab/radio.dart';
+import 'package:islami/Screen/HomeTab/settings.dart';
 import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/data.dart';
 import 'package:islami/dezeen/images.dart';
@@ -22,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
     AhadethTab(),
     SebhaTab(),
     RadioTab(),
+    SettingsTap(),
   ];
 
   @override
@@ -35,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           backgroundColor: AppColors.transparent,
           centerTitle: true,
-          title:const Text(
+          title: const Text(
             "Islami",
             style: Mytheme.appBarTitleStyle,
           ),
@@ -68,6 +70,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: ImageIcon(AssetImage(AppImage.icsebha)), label: "Sebha"),
             BottomNavigationBarItem(
                 icon: ImageIcon(AssetImage(AppImage.icRadio)), label: "Radio"),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.settings), label: "Settings"),
           ],
         ),
       );
