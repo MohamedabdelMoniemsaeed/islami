@@ -1,29 +1,36 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:islami/Screen/home.dart';
 import 'package:islami/Screen/quran.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:islami/dezeen/shiar.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp( ChangeNotifierProvider(
+    create: (_)=>Shiar(),
+    child: MyApp(),),);
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    Shiar providr = Provider.of(context);
     return MaterialApp(
        title: 'Localizations Sample App',
   localizationsDelegates: [
     GlobalMaterialLocalizations.delegate,
     GlobalWidgetsLocalizations.delegate,
     GlobalCupertinoLocalizations.delegate,
+    AppLocalizations.delegate,
   ],
   supportedLocales: [
-    Locale('en'), // English
+    Locale('en'),//English
     Locale('ar'), // Arabic
   ],
+      locale: Locale(providr.lang),
       debugShowCheckedModeBanner: false,
       routes: {
         HomeScreen.routeName: (_) => HomeScreen(),

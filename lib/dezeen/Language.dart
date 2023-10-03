@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:islami/dezeen/colors.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:islami/dezeen/shiar.dart';
+import 'package:provider/provider.dart';
 class onClickLanguageWidgit extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    Shiar providr = Provider.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          "Language",
+          AppLocalizations.of(context)!.language,
           style: TextStyle(fontSize: 19),
           textAlign: TextAlign.center,
         ),
@@ -20,11 +23,27 @@ class onClickLanguageWidgit extends StatelessWidget {
         SizedBox(
           height: 30,
         ),
-        colorLanguage(true, "English"),
+        InkWell(
+          onTap: (){
+            providr.lang = "en";
+            providr.notifyListeners();
+            Navigator.pop(context);
+          },
+          child:colorLanguage(providr.lang =="en", "English"),
+        ),
+
         SizedBox(
           height: 10,
         ),
-        colorLanguage(false, "العربيه"),
+        InkWell(
+          onTap:(){
+            providr.lang = "ar";
+            providr.notifyListeners();
+            Navigator.pop(context);
+          },
+         child: colorLanguage(providr.lang =="ar", "العربيه"),
+        )
+
       ],
     );
   }

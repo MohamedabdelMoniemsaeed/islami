@@ -4,6 +4,7 @@ import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/data.dart';
 import 'package:islami/dezeen/images.dart';
 import 'package:islami/dezeen/theme.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class QuranScreen extends StatefulWidget {
   static const String routeName = "Quran";
@@ -33,8 +34,8 @@ class _QuranScreenState extends State<QuranScreen> {
           elevation: 0,
           backgroundColor: AppColors.transparent,
           centerTitle: true,
-          title: const Text(
-            "Islami",
+          title:  Text(
+            AppLocalizations.of(context)!.islami,
             style: Mytheme.appBarTitleStyle,
           ),
         ),

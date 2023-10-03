@@ -4,6 +4,7 @@ import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/data.dart';
 import 'package:islami/dezeen/images.dart';
 import 'package:islami/dezeen/theme.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class AhadethTab extends StatelessWidget {
   List<String> ahadethName = List.generate(50, (index) {
@@ -24,7 +25,7 @@ class AhadethTab extends StatelessWidget {
           thickness: 2,
         ),
         Text(
-          "Ahadeth Name",
+          AppLocalizations.of(context)!.ahadethName,
           textAlign: TextAlign.center,
           style: Mytheme.quranTitleStyle,
         ),

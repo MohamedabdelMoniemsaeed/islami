@@ -5,6 +5,7 @@ import 'package:islami/dezeen/suraName.dart';
 import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/images.dart';
 import 'package:islami/dezeen/theme.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class QuranTab extends StatelessWidget {
   const QuranTab({super.key});
@@ -23,7 +24,7 @@ class QuranTab extends StatelessWidget {
           thickness: 2,
         ),
         Text(
-          "Sura Name",
+          AppLocalizations.of(context)!.suraName,
           textAlign: TextAlign.center,
           style: Mytheme.quranTitleStyle,
         ),

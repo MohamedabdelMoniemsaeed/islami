@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:islami/dezeen/Language.dart';
 import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/theme.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+
+import '../../dezeen/shiar.dart';
 
 class SettingsTap extends StatefulWidget {
   const SettingsTap({super.key});
@@ -13,11 +17,12 @@ class SettingsTap extends StatefulWidget {
 class _SettingsTapState extends State<SettingsTap> {
   @override
   Widget build(BuildContext context) {
+    Shiar providr = Provider.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SizedBox(
         height: 60,
       ),
-      textTitle("Language"),
+      textTitle(AppLocalizations.of(context)!.language),
       SizedBox(
         height: 30,
       ),
@@ -25,22 +30,22 @@ class _SettingsTapState extends State<SettingsTap> {
           onTap: () {
             onClickLanguage();
           },
-          child: RowTab("English")),
+          child: RowTab(providr.lang == "en"?"English":"العربيه")),
       SizedBox(
         height: 50,
       ),
-      textTitle("Mode"),
+      textTitle(AppLocalizations.of(context)!.mode),
       SizedBox(
         height: 30,
       ),
-      InkWell(onTap: () {}, child: RowTab("Dark")),
+      InkWell(onTap: () {}, child: RowTab(AppLocalizations.of(context)!.dark)),
     ]);
   }
 
   Widget textTitle(String name) {
     return Container(
       margin: EdgeInsets.only(
-        left: 30,
+        left: 30,right: 30
       ),
       child: Text(
         name,
