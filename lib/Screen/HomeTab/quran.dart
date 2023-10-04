@@ -4,7 +4,7 @@ import 'package:islami/dezeen/data.dart';
 import 'package:islami/dezeen/suraName.dart';
 import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/images.dart';
-import 'package:islami/dezeen/theme.dart';
+
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class QuranTab extends StatelessWidget {
@@ -26,7 +26,7 @@ class QuranTab extends StatelessWidget {
         Text(
           AppLocalizations.of(context)!.suraName,
           textAlign: TextAlign.center,
-          style: Mytheme.quranTitleStyle,
+          style: Theme.of(context).badgeTheme.textStyle,
         ),
         Divider(
           color: AppColors.yellow,
@@ -48,8 +48,7 @@ class QuranTab extends StatelessWidget {
                   },
                   child: Text(
                     SuraName.listSuraName[index],
-                    style: Mytheme.quranTitleStyle
-                        .copyWith(fontWeight: FontWeight.normal),
+                    style: Theme.of(context).textTheme.displayMedium,
                     textAlign: TextAlign.center,
                   ),
                 );

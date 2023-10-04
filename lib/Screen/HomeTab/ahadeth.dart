@@ -27,7 +27,7 @@ class AhadethTab extends StatelessWidget {
         Text(
           AppLocalizations.of(context)!.ahadethName,
           textAlign: TextAlign.center,
-          style: Mytheme.quranTitleStyle,
+          style: Theme.of(context).badgeTheme.textStyle,
         ),
         Divider(
           color: AppColors.yellow,
@@ -47,8 +47,7 @@ class AhadethTab extends StatelessWidget {
               },
               child: Text(
                 ahadethName[index],
-                style: Mytheme.quranTitleStyle
-                    .copyWith(fontWeight: FontWeight.normal),
+                style: Theme.of(context).textTheme.displayMedium,
                 textAlign: TextAlign.center,
               ),
             );

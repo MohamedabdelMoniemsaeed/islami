@@ -5,6 +5,7 @@ import 'package:islami/Screen/home.dart';
 import 'package:islami/Screen/quran.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:islami/dezeen/shiar.dart';
+import 'package:islami/dezeen/theme.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -19,6 +20,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     Shiar providr = Provider.of(context);
     return MaterialApp(
+themeMode: providr.mode,
+darkTheme: Apptheme.darkTheme,
+theme: Apptheme.lightTheme,
+
        title: 'Localizations Sample App',
   localizationsDelegates: [
     GlobalMaterialLocalizations.delegate,

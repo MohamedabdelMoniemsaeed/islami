@@ -31,12 +31,10 @@ class _QuranScreenState extends State<QuranScreen> {
               image: AssetImage(AppImage.backgroundHome), fit: BoxFit.fill)),
       child: Scaffold(
         appBar: AppBar(
-          elevation: 0,
-          backgroundColor: AppColors.transparent,
-          centerTitle: true,
+          
           title:  Text(
             AppLocalizations.of(context)!.islami,
-            style: Mytheme.appBarTitleStyle,
+            style:Theme.of(context).appBarTheme.titleTextStyle,
           ),
         ),
         body: files.isEmpty
@@ -52,12 +50,12 @@ class _QuranScreenState extends State<QuranScreen> {
                     children: [
                       Text(
                         arguments.suraName,
-                        style: Mytheme.quranTitleStyle,
-                        textAlign: TextAlign.center,
+                        style: Theme.of(context).badgeTheme.textStyle,
+                        textAlign: TextAlign.center
                       ),
                       Text(
                         files,
-                        style: Mytheme.quranTitleStyle,
+                        style: Theme.of(context).badgeTheme.textStyle,
                         textAlign: TextAlign.center,
                         textDirection: TextDirection.rtl,
                       ),

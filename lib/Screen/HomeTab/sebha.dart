@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/images.dart';
-import 'package:islami/dezeen/theme.dart';
 
 class SebhaTab extends StatefulWidget {
   @override
@@ -59,30 +58,30 @@ class _SebhaTabState extends State<SebhaTab> {
               SizedBox(height: 20),
               Text(
                 "عدد التسبيحات",
-                style: Mytheme.quranTitleStyle,
+                style: Theme.of(context).badgeTheme.textStyle,
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
-                    color: AppColors.yellow,
+                    color: Theme.of(context).canvasColor,
                     borderRadius: BorderRadius.circular(20)),
                 padding: EdgeInsets.all(20),
                 child: Text(
                   "$conter",
-                  style: Mytheme.quranTitleStyle,
+                  style: Theme.of(context).badgeTheme.textStyle,
                   textAlign: TextAlign.center,
                 ),
               ),
               SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
-                    color: AppColors.yellow,
+                    color: Theme.of(context).canvasColor,
                     borderRadius: BorderRadius.circular(50)),
                 padding: EdgeInsets.all(10),
                 child: Text(
                   textsebha[culindex],
-                  style: Mytheme.sebhaTitleStyle,
+                  style: Theme.of(context).textTheme.displayLarge,
                   textAlign: TextAlign.center,
                 ),
               ),

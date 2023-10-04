@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:islami/dezeen/Language.dart';
 import 'package:islami/dezeen/colors.dart';
-import 'package:islami/dezeen/theme.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -15,6 +14,7 @@ class SettingsTap extends StatefulWidget {
 }
 
 class _SettingsTapState extends State<SettingsTap> {
+  bool modeList = true;
   @override
   Widget build(BuildContext context) {
     Shiar providr = Provider.of(context);
@@ -22,7 +22,9 @@ class _SettingsTapState extends State<SettingsTap> {
       SizedBox(
         height: 60,
       ),
-      textTitle(AppLocalizations.of(context)!.language),
+      textTitle(
+        AppLocalizations.of(context)!.language,
+      ),
       SizedBox(
         height: 30,
       ),
@@ -30,26 +32,37 @@ class _SettingsTapState extends State<SettingsTap> {
           onTap: () {
             onClickLanguage();
           },
-          child: RowTab(providr.lang == "en"?"English":"العربيه")),
+          child: RowTab(providr.lang == "en" ? "English" : "العربيه")),
       SizedBox(
         height: 50,
       ),
-      textTitle(AppLocalizations.of(context)!.mode),
-      SizedBox(
-        height: 30,
+      Row(
+        children: [
+          textTitle(AppLocalizations.of(context)!.mode),
+          Spacer(),
+          Switch(
+              value: modeList,
+              onChanged: (newSwitch) {
+                modeList = newSwitch;
+                if (modeList) {
+                  providr.mode = ThemeMode.dark;
+                  providr.notifyListeners();
+                } else {
+                  providr.mode = ThemeMode.light;
+                  providr.notifyListeners();
+                }
+              })
+        ], 
       ),
-      InkWell(onTap: () {}, child: RowTab(AppLocalizations.of(context)!.dark)),
     ]);
   }
 
   Widget textTitle(String name) {
     return Container(
-      margin: EdgeInsets.only(
-        left: 30,right: 30
-      ),
+      margin: EdgeInsets.only(left: 30, right: 30),
       child: Text(
         name,
-        style: Mytheme.quranTitleStyle,
+        style: Theme.of(context).textTheme.bodyLarge,
       ),
     );
   }
@@ -63,12 +76,12 @@ class _SettingsTapState extends State<SettingsTap> {
       child: Row(
         children: [
           Container(
-              margin: EdgeInsets.only(left: 20),
-              child: Text(name,
-                  style: TextStyle(
-                      color: AppColors.yellow,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold))),
+            margin: EdgeInsets.only(left: 20),
+            child: Text(
+              name,
+              style: Theme.of(context).textTheme.displaySmall,
+            ),
+          ),
           Spacer(),
           Container(
               margin: EdgeInsets.only(right: 10),

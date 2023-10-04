@@ -11,4 +11,7 @@ abstract class AppImage {
   static const String background = "${pathimage}splash.png";
   static const String bodysebha = "${pathimage}bodyofseb7a.png";
   static const String headsebha = "${pathimage}headofseb7a.png";
+    static const String backgroundHomeDark = "${pathimage}splash–Dark.png";
+  static const String backgroundDark = "${pathimage}bgDark.png";
+
 }

@@ -7,8 +7,10 @@ import 'package:islami/Screen/HomeTab/settings.dart';
 import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/data.dart';
 import 'package:islami/dezeen/images.dart';
+import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/dezeen/theme.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -30,22 +32,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Shiar provider = Provider.of(context);
     return Container(
       decoration: BoxDecoration(
           image: DecorationImage(
-              image: AssetImage(AppImage.backgroundHome), fit: BoxFit.fill)),
+              image: AssetImage(provider.mode == ThemeMode.light? AppImage.backgroundHome:AppImage.backgroundDark), fit: BoxFit.fill)),
       child: Scaffold(
         appBar: AppBar(
-          elevation: 0,
-          backgroundColor: AppColors.transparent,
-          centerTitle: true,
+         
           title:  Text(
             AppLocalizations.of(context)!.islami,
-            style: Mytheme.appBarTitleStyle,
+            style: Theme.of(context).appBarTheme.titleTextStyle,
           ),
         ),
         body: tabs[cindex],
-        backgroundColor: AppColors.transparent,
+        
         bottomNavigationBar: buildBottomNavigationBar(),
       ),
     );
@@ -54,8 +55,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget buildBottomNavigationBar() => Theme(
         data: ThemeData(canvasColor: AppColors.yellow),
         child: BottomNavigationBar(
-          selectedItemColor: AppColors.black,
+          selectedItemColor:Theme.of(context).bottomNavigationBarTheme.backgroundColor,
           iconSize: 30,
+          
           currentIndex: cindex,
           onTap: (index) {
             cindex = index;
@@ -69,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: ImageIcon(AssetImage(AppImage.icAhadeth)),
                 label: AppLocalizations.of(context)!.ahadeth),
             BottomNavigationBarItem(
-                icon: ImageIcon(AssetImage(AppImage.icsebha)), label: AppLocalizations.of(context)!.sebha),
+                icon: ImageIcon(AssetImage(AppImage.icsebha)), label: AppLocalizations.of(context)!.sebha,),
             BottomNavigationBarItem(
                 icon: ImageIcon(AssetImage(AppImage.icRadio)), label: AppLocalizations.of(context)!.radio),
             BottomNavigationBarItem(
