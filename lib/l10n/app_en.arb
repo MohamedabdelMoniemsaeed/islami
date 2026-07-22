@@ -9,6 +9,14 @@
     "sebha":"Sebha",
     "radio":"Radio",
     "ahadeth":"Ahadeth",
-    "suraName":"SuraName",
-    "ahadethName":"AhadethName"
+    "suraName":"Holy Quran",
+    "ahadethName":"AhadethName",
+    "internetConnected": "Internet Connected",
+    "internetDisconnected": "Internet Disconnected",
+    "checkForUpdates": "Check for Updates",
+    "updateAvailable": "Update Available",
+    "noUpdateAvailable": "You are up to date",
+    "updating": "Updating...",
+    "updateDownloaded": "Update downloaded, please restart the app",
+    "version": "Version"
 }

@@ -1,45 +1,112 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:islami/l10n/app_localizations.dart';
 import 'package:islami/Screen/home.dart';
 import 'package:islami/Screen/quran.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/dezeen/theme.dart';
+import 'package:islami/dezeen/connectivity_service.dart';
 import 'package:provider/provider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 void main() {
-  runApp( ChangeNotifierProvider(
-    create: (_)=>Shiar(),
-    child: MyApp(),),);
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => AppProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final GlobalKey<ScaffoldMessengerState> messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+  late StreamSubscription<List<ConnectivityResult>> _subscription;
+  bool _isFirstLoad = true;
+  bool _wasConnected = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscription = ConnectivityService().connectivityStream.listen((results) {
+      bool isNowConnected = results.any((r) => r != ConnectivityResult.none);
+      
+      if (_isFirstLoad) {
+        _wasConnected = isNowConnected;
+        _isFirstLoad = false;
+        return;
+      }
+
+      if (isNowConnected && !_wasConnected) {
+        _showConnectivitySnackBar(true);
+      } else if (!isNowConnected && _wasConnected) {
+        _showConnectivitySnackBar(false);
+      }
+      
+      _wasConnected = isNowConnected;
+    });
+  }
+
+  void _showConnectivitySnackBar(bool isConnected) {
+    final context = messengerKey.currentContext;
+    if (context == null) return;
+
+    final localizations = AppLocalizations.of(context)!;
+    final message = isConnected 
+        ? localizations.internetConnected 
+        : localizations.internetDisconnected;
+    
+    messengerKey.currentState?.hideCurrentSnackBar();
+    messengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: isConnected ? Colors.green : Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    Shiar providr = Provider.of(context);
+    var provider = Provider.of<AppProvider>(context);
+    
     return MaterialApp(
-themeMode: providr.mode,
-darkTheme: Apptheme.darkTheme,
-theme: Apptheme.lightTheme,
-
-       title: 'Localizations Sample App',
-  localizationsDelegates: [
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    AppLocalizations.delegate,
-  ],
-  supportedLocales: [
-    Locale('en'),//English
-    Locale('ar'), // Arabic
-  ],
-      locale: Locale(providr.lang),
+      scaffoldMessengerKey: messengerKey,
+      title: 'Islami App',
       debugShowCheckedModeBanner: false,
+      themeMode: provider.mode,
+      theme: Apptheme.lightTheme,
+      darkTheme: Apptheme.darkTheme,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ar'),
+      ],
+      locale: const Locale('ar'),
       routes: {
-        HomeScreen.routeName: (_) => HomeScreen(),
-        QuranScreen.routeName: (_) => QuranScreen(),
+        HomeScreen.routeName: (_) => const HomeScreen(),
+        QuranScreen.routeName: (_) => const QuranScreen(),
       },
       initialRoute: HomeScreen.routeName,
     );

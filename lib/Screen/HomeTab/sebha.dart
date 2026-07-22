@@ -1,109 +1,98 @@
 import 'package:flutter/material.dart';
-import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/images.dart';
+import 'package:islami/dezeen/shiar.dart';
+import 'package:provider/provider.dart';
 
 class SebhaTab extends StatefulWidget {
+  const SebhaTab({super.key});
+
   @override
   State<SebhaTab> createState() => _SebhaTabState();
 }
 
 class _SebhaTabState extends State<SebhaTab> {
-  int conter = 0;
-  List<String> textsebha = ["الحمد لله", "الله اكبر", "سبحان الله"];
-  int culindex = 0;
-  double angle = 5;
+  int counter = 0;
+  List<String> textSebha = ["الحمد لله", "الله اكبر", "سبحان الله"];
+  int currentIndex = 0;
+  double angle = 0;
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
-    return Container(
-      width: size.width,
-      child: Theme(
-        data: ThemeData(
-            highlightColor: AppColors.transparent,
-            splashColor: AppColors.transparent),
-        child: InkWell(
-          onTap: () {
-            onClick();
-          },
-          child: Column(
+    var provider = Provider.of<AppProvider>(context);
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        children: [
+          const SizedBox(height: 40),
+          Stack(
+            alignment: Alignment.topCenter,
             children: [
-              SizedBox(height: 40),
-              Stack(
-                alignment: Alignment.topCenter,
-                children: [
-                  Container(
-                      margin: EdgeInsets.only(left: 40),
-                      child: Image.asset(
-                        AppImage.headsebha,
-                      )),
-                  Container(
-                    margin: EdgeInsets.only(top: 75),
-                    child: Transform.rotate(
-                      angle: angle,
-                      child: Theme(
-                        data: ThemeData(
-                            highlightColor: AppColors.transparent,
-                            splashColor: AppColors.transparent),
-                        child: InkWell(
-                            onTap: () {
-                              onClick();
-                            },
-                            child: Image.asset(AppImage.bodysebha)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              Text(
-                "عدد التسبيحات",
-                style: Theme.of(context).badgeTheme.textStyle,
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 20),
               Container(
-                decoration: BoxDecoration(
-                    color: Theme.of(context).canvasColor,
-                    borderRadius: BorderRadius.circular(20)),
-                padding: EdgeInsets.all(20),
-                child: Text(
-                  "$conter",
-                  style: Theme.of(context).badgeTheme.textStyle,
-                  textAlign: TextAlign.center,
+                margin: const EdgeInsets.only(left: 40),
+                child: Image.asset(
+                  AppImage.headsebha,
                 ),
               ),
-              SizedBox(height: 20),
               Container(
-                decoration: BoxDecoration(
-                    color: Theme.of(context).canvasColor,
-                    borderRadius: BorderRadius.circular(50)),
-                padding: EdgeInsets.all(10),
-                child: Text(
-                  textsebha[culindex],
-                  style: Theme.of(context).textTheme.displayLarge,
-                  textAlign: TextAlign.center,
+                margin: const EdgeInsets.only(top: 75),
+                child: Transform.rotate(
+                  angle: angle,
+                  child: InkWell(
+                    onTap: onClick,
+                    child: Image.asset(
+                      AppImage.bodysebha,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 20),
+          Text(
+            "عدد التسبيحات",
+            style: Theme.of(context).textTheme.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              "$counter",
+              style: Theme.of(context).textTheme.displayMedium,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor,
+              borderRadius: BorderRadius.circular(50),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Text(
+              textSebha[currentIndex],
+              style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                color: provider.isDarkMode() ? Colors.black : Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   void onClick() {
-    angle += 3;
-
-    if (conter == 30) {
-      conter = 0;
-      culindex++;
-
-      if (culindex > 2) {
-        culindex = 0;
+    setState(() {
+      angle += 0.2;
+      counter++;
+      if (counter % 33 == 0) {
+        currentIndex = (currentIndex + 1) % textSebha.length;
       }
-    }
-    conter++;
-    setState(() {});
+    });
   }
 }

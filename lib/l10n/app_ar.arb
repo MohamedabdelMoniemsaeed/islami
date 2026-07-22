@@ -9,6 +9,14 @@
     "sebha":"سبحه",
     "radio":"راديو",
     "ahadeth":"احاديث",
-    "suraName":"اسماء السور",
-    "ahadethName":"اسماء الاحاديث"
+    "suraName":"القرآن الكريم",
+    "ahadethName":"اسماء الاحاديث",
+    "internetConnected": "تم الاتصال بالإنترنت",
+    "internetDisconnected": "فقد الاتصال بالإنترنت",
+    "checkForUpdates": "التحقق من وجود تحديثات",
+    "updateAvailable": "يوجد تحديث جديد",
+    "noUpdateAvailable": "أنت تستخدم أحدث إصدار",
+    "updating": "جاري التحديث...",
+    "updateDownloaded": "تم تحميل التحديث، يرجى إعادة تشغيل التطبيق",
+    "version": "الإصدار"
 }

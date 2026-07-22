@@ -1,101 +1,140 @@
 import 'package:flutter/material.dart';
-import 'package:islami/dezeen/Language.dart';
 import 'package:islami/dezeen/colors.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:islami/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
-
 import '../../dezeen/shiar.dart';
+import 'package:shorebird_code_push/shorebird_code_push.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
-class SettingsTap extends StatefulWidget {
-  const SettingsTap({super.key});
+class SettingsTab extends StatefulWidget {
+  const SettingsTab({super.key});
 
   @override
-  State<SettingsTap> createState() => _SettingsTapState();
+  State<SettingsTab> createState() => _SettingsTabState();
 }
 
-class _SettingsTapState extends State<SettingsTap> {
-  bool modeList = true;
+class _SettingsTabState extends State<SettingsTab> {
+  final _shorebirdUpdater = ShorebirdUpdater();
+  bool _isCheckingForUpdate = false;
+  String _version = "";
+
   @override
-  Widget build(BuildContext context) {
-    Shiar providr = Provider.of(context);
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      SizedBox(
-        height: 60,
-      ),
-      textTitle(
-        AppLocalizations.of(context)!.language,
-      ),
-      SizedBox(
-        height: 30,
-      ),
-      InkWell(
-          onTap: () {
-            onClickLanguage();
-          },
-          child: RowTab(providr.lang == "en" ? "English" : "العربيه")),
-      SizedBox(
-        height: 50,
-      ),
-      Row(
-        children: [
-          textTitle(AppLocalizations.of(context)!.mode),
-          Spacer(),
-          Switch(
-              value: modeList,
-              onChanged: (newSwitch) {
-                modeList = newSwitch;
-                if (modeList) {
-                  providr.mode = ThemeMode.dark;
-                  providr.notifyListeners();
-                } else {
-                  providr.mode = ThemeMode.light;
-                  providr.notifyListeners();
-                }
-              })
-        ], 
-      ),
-    ]);
+  void initState() {
+    super.initState();
+    _loadVersionInfo();
   }
 
-  Widget textTitle(String name) {
-    return Container(
-      margin: EdgeInsets.only(left: 30, right: 30),
-      child: Text(
-        name,
-        style: Theme.of(context).textTheme.bodyLarge,
-      ),
+  Future<void> _loadVersionInfo() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = "${packageInfo.version} (${packageInfo.buildNumber})";
+    });
+  }
+
+  Future<void> _checkForUpdate() async {
+    setState(() {
+      _isCheckingForUpdate = true;
+    });
+
+    try {
+      if (!_shorebirdUpdater.isAvailable) {
+        _showSnackBar("Shorebird is not available");
+        return;
+      }
+
+      final status = await _shorebirdUpdater.checkForUpdate();
+      
+      if (!mounted) return;
+
+      if (status == UpdateStatus.upToDate) {
+        _showSnackBar(AppLocalizations.of(context)!.noUpdateAvailable);
+      } else if (status == UpdateStatus.outdated) {
+        _showSnackBar(AppLocalizations.of(context)!.updateAvailable);
+        _showSnackBar(AppLocalizations.of(context)!.updating);
+        
+        await _shorebirdUpdater.update();
+        
+        if (mounted) {
+          _showSnackBar(AppLocalizations.of(context)!.updateDownloaded);
+        }
+      } else if (status == UpdateStatus.restartRequired) {
+        _showSnackBar(AppLocalizations.of(context)!.updateDownloaded);
+      } else if (status == UpdateStatus.unavailable) {
+        _showSnackBar("Shorebird is not available");
+      }
+    } catch (e) {
+      _showSnackBar("Error checking for updates: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingForUpdate = false;
+        });
+      }
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
-  Widget RowTab(String name) {
-    return Container(
-      margin: EdgeInsets.only(left: 40, right: 40),
-      height: 50,
-      decoration: BoxDecoration(
-          color: AppColors.white, border: Border.all(color: AppColors.yellow)),
-      child: Row(
+  @override
+  Widget build(BuildContext context) {
+    var provider = Provider.of<AppProvider>(context);
+    var locale = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            margin: EdgeInsets.only(left: 20),
-            child: Text(
-              name,
-              style: Theme.of(context).textTheme.displaySmall,
-            ),
+          const SizedBox(height: 40),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                locale.mode,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              Switch(
+                value: provider.isDarkMode(),
+                onChanged: (isDark) {
+                  provider.changeTheme(isDark ? ThemeMode.dark : ThemeMode.light);
+                },
+              ),
+            ],
           ),
-          Spacer(),
-          Container(
-              margin: EdgeInsets.only(right: 10),
-              child: Icon(Icons.arrow_drop_down)),
+          const Spacer(),
+          if (_isCheckingForUpdate)
+            const Center(child: CircularProgressIndicator())
+          else
+            ElevatedButton(
+              onPressed: _checkForUpdate,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.yellow,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                locale.checkForUpdates,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          const SizedBox(height: 10),
+          Text(
+            "${locale.version}: $_version",
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey,
+                ),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
-  }
-
-  void onClickLanguage() {
-    showModalBottomSheet(
-        context: context,
-        builder: (context) {
-          return onClickLanguageWidgit();
-        });
   }
 }
