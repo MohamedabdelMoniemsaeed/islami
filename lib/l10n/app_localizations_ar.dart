@@ -45,6 +45,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get ahadethName => 'اسماء الاحاديث';
 
   @override
+  String get prayerTimes => 'مواقيت الصلاة';
+
+  @override
+  String get tafasir => 'التفسير';
+
+  @override
+  String get azkar => 'الأذكار';
+
+  @override
   String get internetConnected => 'تم الاتصال بالإنترنت';
 
   @override

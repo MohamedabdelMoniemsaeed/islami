@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:islami/Screen/HomeTab/Sebha.dart';
 import 'package:islami/Screen/HomeTab/ahadeth.dart';
 import 'package:islami/Screen/HomeTab/quran.dart';
 import 'package:islami/Screen/HomeTab/radio.dart';
 import 'package:islami/Screen/HomeTab/settings.dart';
+import 'package:islami/Screen/HomeTab/prayer_times.dart';
+import 'package:islami/Screen/HomeTab/tafasir.dart';
+import 'package:islami/Screen/HomeTab/azkar.dart';
 import 'package:islami/dezeen/images.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/l10n/app_localizations.dart';
@@ -24,14 +26,17 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> tabs = [
     const QuranTab(),
     const AhadethTab(),
-    const SebhaTab(),
     const RadioTab(),
+    const PrayerTimesTab(),
+    const TafasirTab(),
+    const AzkarTab(),
     const SettingsTab(),
   ];
 
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
+    var locale = AppLocalizations.of(context)!;
     
     return Container(
       decoration: BoxDecoration(
@@ -48,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
         body: SafeArea(child: tabs[currentIndex]),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: currentIndex,
+          type: BottomNavigationBarType.fixed,
           onTap: (index) {
             setState(() {
               currentIndex = index;
@@ -56,23 +62,31 @@ class _HomeScreenState extends State<HomeScreen> {
           items: [
             BottomNavigationBarItem(
               icon: const ImageIcon(AssetImage(AppImage.icQuran)),
-              label: AppLocalizations.of(context)!.quran,
+              label: locale.quran,
             ),
             BottomNavigationBarItem(
               icon: const ImageIcon(AssetImage(AppImage.icAhadeth)),
-              label: AppLocalizations.of(context)!.ahadeth,
-            ),
-            BottomNavigationBarItem(
-              icon: const ImageIcon(AssetImage(AppImage.icsebha)),
-              label: AppLocalizations.of(context)!.sebha,
+              label: locale.ahadeth,
             ),
             BottomNavigationBarItem(
               icon: const ImageIcon(AssetImage(AppImage.icRadio)),
-              label: AppLocalizations.of(context)!.radio,
+              label: locale.radio,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.access_time),
+              label: locale.prayerTimes,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.menu_book),
+              label: locale.tafasir,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.auto_stories),
+              label: locale.azkar,
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.settings),
-              label: AppLocalizations.of(context)!.settings,
+              label: locale.settings,
             ),
           ],
         ),

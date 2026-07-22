@@ -33,6 +33,8 @@ dependencies:
   connectivity_plus: ^7.3.0
   shorebird_code_push: ^2.0.7
   package_info_plus: ^10.2.1
+  http: ^1.2.2
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:

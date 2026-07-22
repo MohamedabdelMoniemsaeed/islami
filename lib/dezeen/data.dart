@@ -1,9 +1,13 @@
 class DataQuran {
-  String suraName;
-  String fileName;
-  bool isQuranfile;
-  DataQuran(
-      {required this.fileName,
-      required this.isQuranfile,
-      required this.suraName});
+  final String suraName;
+  final String fileName;
+  final bool isQuranfile;
+  final String? content; // New optional field for direct API content
+
+  DataQuran({
+    required this.fileName,
+    required this.isQuranfile,
+    required this.suraName,
+    this.content,
+  });
 }

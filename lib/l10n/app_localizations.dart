@@ -170,6 +170,24 @@ abstract class AppLocalizations {
   /// **'AhadethName'**
   String get ahadethName;
 
+  /// No description provided for @prayerTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer Times'**
+  String get prayerTimes;
+
+  /// No description provided for @tafasir.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpretation'**
+  String get tafasir;
+
+  /// No description provided for @azkar.
+  ///
+  /// In en, this message translates to:
+  /// **'Remembrances'**
+  String get azkar;
+
   /// No description provided for @internetConnected.
   ///
   /// In en, this message translates to:

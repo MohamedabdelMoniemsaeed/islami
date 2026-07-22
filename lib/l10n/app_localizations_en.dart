@@ -45,6 +45,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ahadethName => 'AhadethName';
 
   @override
+  String get prayerTimes => 'Prayer Times';
+
+  @override
+  String get tafasir => 'Interpretation';
+
+  @override
+  String get azkar => 'Remembrances';
+
+  @override
   String get internetConnected => 'Internet Connected';
 
   @override

@@ -25,7 +25,11 @@ class _QuranScreenState extends State<QuranScreen> {
     var arguments = ModalRoute.of(context)!.settings.arguments as DataQuran;
     
     if (content.isEmpty) {
-      readFile(arguments);
+      if (arguments.content != null && arguments.content!.isNotEmpty) {
+        content = arguments.content!;
+      } else {
+        readFile(arguments);
+      }
     }
 
     return Container(
@@ -90,24 +94,32 @@ class _QuranScreenState extends State<QuranScreen> {
   }
 
   void readFile(DataQuran arguments) async {
-    String fileContent = await rootBundle.loadString(
-      arguments.isQuranfile
-          ? "assets/quran/${arguments.fileName}"
-          : "assets/ahadeth/${arguments.fileName}"
-    );
+    try {
+      String fileContent = await rootBundle.loadString(
+        arguments.isQuranfile
+            ? "assets/quran/${arguments.fileName}"
+            : "assets/ahadeth/${arguments.fileName}"
+      );
 
-    if (arguments.isQuranfile) {
-      List<String> fileLines = fileContent.trim().split("\n");
-      for (int i = 0; i < fileLines.length; i++) {
-        fileLines[i] += " (${i + 1}) ";
+      if (arguments.isQuranfile) {
+        List<String> fileLines = fileContent.trim().split("\n");
+        for (int i = 0; i < fileLines.length; i++) {
+          fileLines[i] += " (${i + 1}) ";
+        }
+        content = fileLines.join();
+      } else {
+        content = fileContent;
       }
-      content = fileLines.join();
-    } else {
-      content = fileContent;
-    }
-    
-    if (mounted) {
-      setState(() {});
+      
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          content = "خطأ في تحميل المحتوى";
+        });
+      }
     }
   }
 }
