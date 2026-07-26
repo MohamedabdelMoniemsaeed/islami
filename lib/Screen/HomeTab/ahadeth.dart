@@ -9,22 +9,82 @@ import 'package:islami/services/api_service.dart';
 import 'package:islami/models/hadith_model.dart';
 import 'package:provider/provider.dart';
 
-class AhadethTab extends StatelessWidget {
+class AhadethTab extends StatefulWidget {
   const AhadethTab({super.key});
+
+  @override
+  State<AhadethTab> createState() => _AhadethTabState();
+}
+
+class _AhadethTabState extends State<AhadethTab> {
+  final ApiService _apiService = ApiService();
+  int _currentBookIndex = 0;
+  int _currentPage = 1;
+  
+  void _nextBook() {
+    setState(() {
+      _currentBookIndex = (_currentBookIndex + 1) % ApiService.hadithBooks.length;
+      _currentPage = 1;
+    });
+  }
+
+  void _previousBook() {
+    setState(() {
+      _currentBookIndex = (_currentBookIndex - 1 + ApiService.hadithBooks.length) % ApiService.hadithBooks.length;
+      _currentPage = 1;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     var locale = AppLocalizations.of(context)!;
     var provider = Provider.of<AppProvider>(context);
-    final ApiService apiService = ApiService();
+    String bookId = ApiService.hadithBooks[_currentBookIndex]['id']!;
+    String bookName = ApiService.hadithBooks[_currentBookIndex]['name']!;
 
     return Column(
       children: [
-        // الجزء الذي يختفي عند السكرول (العنوان والصورة)
-        // ملاحظة: بما أننا نريد السكرول للكل، سنستخدم FutureBuilder داخل CustomScrollView
+        // الجزء العلوي الثابت مع الأسهم لتغيير الكتاب
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: provider.isDarkMode() ? AppColors.yellowDark : const Color(0xFFF8F8F8),
+            border: const Border(bottom: BorderSide(color: AppColors.yellow, width: 2)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              IconButton(
+                onPressed: _previousBook,
+                icon: const Icon(Icons.arrow_back_ios, color: AppColors.yellow),
+              ),
+              Column(
+                children: [
+                  Text(
+                    bookName,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: 24,
+                      color: provider.isDarkMode() ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  Text(
+                    "صفحة ${_toArabicNumbers(_currentPage.toString())}",
+                    style: const TextStyle(color: AppColors.yellow, fontSize: 16),
+                  ),
+                ],
+              ),
+              IconButton(
+                onPressed: _nextBook,
+                icon: const Icon(Icons.arrow_forward_ios, color: AppColors.yellow),
+              ),
+            ],
+          ),
+        ),
+        
         Expanded(
           child: FutureBuilder<HadithResponse>(
-            future: apiService.getHadiths('abu-dawud', 1),
+            key: ValueKey("$bookId-$_currentPage"), // لضمان التحديث عند تغيير الكتاب
+            future: _apiService.getHadiths(bookId, _currentPage),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator(color: AppColors.yellow));
@@ -39,82 +99,56 @@ class AhadethTab extends StatelessWidget {
 
               final hadiths = snapshot.data!.items;
 
-              return CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 10),
-                        Text(
-                          locale.islami,
-                          style: Theme.of(context).appBarTheme.titleTextStyle,
-                          textAlign: TextAlign.center,
+              return ListView.separated(
+                itemCount: hadiths.length,
+                separatorBuilder: (context, index) => const Divider(color: AppColors.yellow, thickness: 1),
+                itemBuilder: (context, index) {
+                  return MaterialButton(
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        QuranScreen.routeName,
+                        arguments: DataQuran(
+                          fileName: "api_hadith_${hadiths[index].number}",
+                          isQuranfile: false,
+                          suraName: "$bookName - حديث ${_toArabicNumbers(hadiths[index].number.toString())}",
+                          content: hadiths[index].arab,
                         ),
-                        Image.asset(AppImage.psmallh, height: 200),
-                      ],
-                    ),
-                  ),
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SliverHeaderDelegate(
-                      child: Container(
-                        color: provider.isDarkMode() ? AppColors.yellowDark : const Color(0xFFF8F8F8),
-                        child: Column(
-                          children: [
-                            const Divider(color: AppColors.yellow, thickness: 2, height: 2),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              child: Text(
-                                "أحاديث أبي داود",
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: provider.isDarkMode() ? Colors.white : Colors.black,
-                                ),
-                              ),
-                            ),
-                            const Divider(color: AppColors.yellow, thickness: 2, height: 2),
-                          ],
-                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      child: Text(
+                        "حديث رقم ${_toArabicNumbers(hadiths[index].number.toString())}",
+                        style: Theme.of(context).textTheme.displayMedium,
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  ),
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        return Column(
-                          children: [
-                            MaterialButton(
-                              onPressed: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  QuranScreen.routeName,
-                                  arguments: DataQuran(
-                                    fileName: "api_hadith_${hadiths[index].number}",
-                                    isQuranfile: false,
-                                    suraName: "الحديث رقم ${_toArabicNumbers(hadiths[index].number.toString())}",
-                                    content: hadiths[index].arab,
-                                  ),
-                                );
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                child: Text(
-                                  "الحديث رقم ${_toArabicNumbers(hadiths[index].number.toString())}",
-                                  style: Theme.of(context).textTheme.displayMedium,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                            const Divider(color: AppColors.yellow, thickness: 1, height: 1),
-                          ],
-                        );
-                      },
-                      childCount: hadiths.length,
-                    ),
-                  ),
-                ],
+                  );
+                },
               );
             },
+          ),
+        ),
+        
+        // أزرار التنقل بين الصفحات
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          color: provider.isDarkMode() ? AppColors.yellowDark : Colors.white,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_currentPage > 1)
+                TextButton(
+                  onPressed: () => setState(() => _currentPage--),
+                  child: const Text("السابق", style: TextStyle(color: AppColors.yellow)),
+                ),
+              const SizedBox(width: 20),
+              TextButton(
+                onPressed: () => setState(() => _currentPage++),
+                child: const Text("المزيد من الأحاديث", style: TextStyle(color: AppColors.yellow, fontWeight: FontWeight.bold)),
+              ),
+            ],
           ),
         ),
       ],
@@ -129,14 +163,4 @@ class AhadethTab extends StatelessWidget {
     }
     return input;
   }
-}
-
-class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  _SliverHeaderDelegate({required this.child});
-
-  @override double get minExtent => 70;
-  @override double get maxExtent => 70;
-  @override Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => child;
-  @override bool shouldRebuild(covariant _SliverHeaderDelegate oldDelegate) => false;
 }

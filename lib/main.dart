@@ -7,10 +7,15 @@ import 'package:islami/Screen/quran.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/dezeen/theme.dart';
 import 'package:islami/dezeen/connectivity_service.dart';
+import 'package:islami/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().init();
+  
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppProvider(),
@@ -36,6 +41,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _requestPermissions();
     _subscription = ConnectivityService().connectivityStream.listen((results) {
       bool isNowConnected = results.any((r) => r != ConnectivityResult.none);
       
@@ -53,6 +59,11 @@ class _MyAppState extends State<MyApp> {
       
       _wasConnected = isNowConnected;
     });
+  }
+
+  Future<void> _requestPermissions() async {
+    await Permission.notification.request();
+    await Permission.scheduleExactAlarm.request();
   }
 
   void _showConnectivitySnackBar(bool isConnected) {

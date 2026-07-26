@@ -4,7 +4,6 @@ import 'package:islami/dezeen/data.dart';
 import 'package:islami/dezeen/images.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/dezeen/colors.dart';
-import 'package:islami/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class QuranScreen extends StatefulWidget {
@@ -46,7 +45,7 @@ class _QuranScreenState extends State<QuranScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            AppLocalizations.of(context)!.islami,
+            arguments.suraName, // عرض اسم السورة بدلاً من "إسلامي"
           ),
         ),
         body: content.isEmpty
@@ -58,21 +57,7 @@ class _QuranScreenState extends State<QuranScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 20),
-                      Text(
-                        arguments.suraName,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: provider.isDarkMode() ? AppColors.blackDark : AppColors.yellow,
-                          fontSize: 32,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      Divider(
-                        thickness: 1.5,
-                        color: provider.isDarkMode() ? AppColors.blackDark : AppColors.yellow,
-                        indent: 40,
-                        endIndent: 40,
-                      ),
-                      const SizedBox(height: 10),
+                      // تمت إزالة اسم السورة من هنا لأنه انتقل للـ AppBar
                       Text(
                         content,
                         style: Theme.of(context).textTheme.displayMedium?.copyWith(
@@ -102,11 +87,22 @@ class _QuranScreenState extends State<QuranScreen> {
       );
 
       if (arguments.isQuranfile) {
+        // إضافة البسملة في بداية السورة (باستثناء الفاتحة والتوبة إذا كان الملف لا يحتويها)
+        // عادة في هذه الملفات، السورة تبدأ من الآية الأولى مباشرة
+        String bismillah = "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ\n";
+        
         List<String> fileLines = fileContent.trim().split("\n");
         for (int i = 0; i < fileLines.length; i++) {
-          fileLines[i] += " (${i + 1}) ";
+          fileLines[i] += " (${_toArabicNumbers((i + 1).toString())}) ";
         }
-        content = fileLines.join();
+        
+        // لا نضيف البسملة إذا كانت السورة هي الفاتحة أو التوبة (أو حسب رغبتك)
+        // الفاتحة هي 1.txt، التوبة هي 9.txt
+        if (arguments.fileName != "1.txt" && arguments.fileName != "9.txt") {
+          content = bismillah + fileLines.join();
+        } else {
+          content = fileLines.join();
+        }
       } else {
         content = fileContent;
       }
@@ -121,5 +117,14 @@ class _QuranScreenState extends State<QuranScreen> {
         });
       }
     }
+  }
+
+  String _toArabicNumbers(String input) {
+    const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    for (int i = 0; i < english.length; i++) {
+      input = input.replaceAll(english[i], arabic[i]);
+    }
+    return input;
   }
 }

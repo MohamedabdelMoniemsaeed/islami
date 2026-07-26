@@ -5,13 +5,10 @@ abstract class AppImage {
   static const String backgroundHome = "${pathimage}bg3.png";
   static const String icAhadeth = "${pathimage}quran-quran-svgrepo-com.png";
   static const String icQuran = "${pathimage}quran.png";
-  static const String icRadio = "${pathimage}radio.png";
+  static const String icRadio = "${pathimage}radio.png"; // للبار السفلي
+  static const String radioPage = "${pathimage}radio1.jpeg"; // داخل الصفحة
   static const String quran = "${pathimage}Screenshot (1).png";
-  static const String icsebha = "${pathimage}sebha.png";
   static const String background = "${pathimage}splash.png";
-  static const String bodysebha = "${pathimage}bodyofseb7a.png";
-  static const String headsebha = "${pathimage}headofseb7a.png";
-    static const String backgroundHomeDark = "${pathimage}splash–Dark.png";
+  static const String backgroundHomeDark = "${pathimage}splash–Dark.png";
   static const String backgroundDark = "${pathimage}bgDark.png";
-
 }

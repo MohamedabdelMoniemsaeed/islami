@@ -4,7 +4,6 @@ import 'package:islami/Screen/HomeTab/quran.dart';
 import 'package:islami/Screen/HomeTab/radio.dart';
 import 'package:islami/Screen/HomeTab/settings.dart';
 import 'package:islami/Screen/HomeTab/prayer_times.dart';
-import 'package:islami/Screen/HomeTab/tafasir.dart';
 import 'package:islami/Screen/HomeTab/azkar.dart';
 import 'package:islami/dezeen/images.dart';
 import 'package:islami/dezeen/shiar.dart';
@@ -26,9 +25,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> tabs = [
     const QuranTab(),
     const AhadethTab(),
-    const RadioTab(),
+    const RadioTab(), // مدمج معه التفسير الآن
     const PrayerTimesTab(),
-    const TafasirTab(),
     const AzkarTab(),
     const SettingsTab(),
   ];
@@ -61,27 +59,23 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           items: [
             BottomNavigationBarItem(
-              icon: const ImageIcon(AssetImage(AppImage.icQuran)),
+              icon: const Icon(Icons.book),
               label: locale.quran,
             ),
             BottomNavigationBarItem(
-              icon: const ImageIcon(AssetImage(AppImage.icAhadeth)),
+              icon: const Icon(Icons.format_list_bulleted),
               label: locale.ahadeth,
             ),
             BottomNavigationBarItem(
               icon: const ImageIcon(AssetImage(AppImage.icRadio)),
-              label: locale.radio,
+              label: "${locale.radio} & ${locale.tafasir}",
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.access_time),
+              icon: const Icon(Icons.access_time_filled),
               label: locale.prayerTimes,
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.menu_book),
-              label: locale.tafasir,
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.auto_stories),
+              icon: const Icon(Icons.auto_awesome),
               label: locale.azkar,
             ),
             BottomNavigationBarItem(
