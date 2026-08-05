@@ -4,6 +4,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:islami/l10n/app_localizations.dart';
 import 'package:islami/Screen/home.dart';
 import 'package:islami/Screen/quran.dart';
+import 'package:islami/Screen/HomeTab/quran_images_screen.dart';
+import 'package:islami/Screen/HomeTab/surah_index_screen.dart';
+import 'package:islami/Screen/HomeTab/tafsir_details_screen.dart';
+import 'package:islami/Screen/HomeTab/tafsir_index_screen.dart';
+import 'package:islami/Screen/HomeTab/laylat_al_qadr_screen.dart';
+import 'package:islami/Screen/HomeTab/reciter_audio_screen.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/dezeen/theme.dart';
 import 'package:islami/dezeen/connectivity_service.dart';
@@ -11,9 +17,19 @@ import 'package:islami/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 1. تهيئة مشغل الصوت في الخلفية أولاً
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.example.islami.audio',
+    androidNotificationChannelName: 'Radio Playback',
+    androidNotificationOngoing: true,
+  );
+
+  // 2. تهيئة الإشعارات
   await NotificationService().init();
   
   runApp(
@@ -62,8 +78,12 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _requestPermissions() async {
-    await Permission.notification.request();
-    await Permission.scheduleExactAlarm.request();
+    try {
+      await Permission.notification.request();
+      await Permission.scheduleExactAlarm.request();
+    } catch (e) {
+      debugPrint("Permission error: $e");
+    }
   }
 
   void _showConnectivitySnackBar(bool isConnected) {
@@ -118,6 +138,12 @@ class _MyAppState extends State<MyApp> {
       routes: {
         HomeScreen.routeName: (_) => const HomeScreen(),
         QuranScreen.routeName: (_) => const QuranScreen(),
+        QuranImagesScreen.routeName: (_) => const QuranImagesScreen(),
+        SurahIndexScreen.routeName: (_) => const SurahIndexScreen(),
+        TafsirIndexScreen.routeName: (_) => const TafsirIndexScreen(),
+        TafsirDetailsScreen.routeName: (_) => const TafsirDetailsScreen(surahNumber: 1, surahName: ""),
+        LaylatAlQadrScreen.routeName: (_) => const LaylatAlQadrScreen(),
+        ReciterAudioScreen.routeName: (_) => const ReciterAudioScreen(reciterId: 112),
       },
       initialRoute: HomeScreen.routeName,
     );

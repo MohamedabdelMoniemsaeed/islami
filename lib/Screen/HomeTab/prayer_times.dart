@@ -31,26 +31,8 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
 
   void _scheduleNotifications(PrayerTimes times) {
     if (_notificationsScheduled) return;
-    
-    final DateFormat formatter = DateFormat("yyyy-MM-dd");
-    final String today = formatter.format(DateTime.now());
-
-    _schedule(0, "الفجر", "$today ${times.fajr}");
-    _schedule(1, "الظهر", "$today ${times.dhuhr}");
-    _schedule(2, "العصر", "$today ${times.asr}");
-    _schedule(3, "المغرب", "$today ${times.maghrib}");
-    _schedule(4, "العشاء", "$today ${times.isha}");
-
+    _notificationService.scheduleAllPrayers(times);
     _notificationsScheduled = true;
-  }
-
-  void _schedule(int id, String name, String timeStr) {
-    try {
-      final DateTime scheduledTime = DateFormat("yyyy-MM-dd HH:mm").parse(timeStr);
-      _notificationService.schedulePrayerNotification(id, name, scheduledTime);
-    } catch (e) {
-      debugPrint("Error scheduling notification for $name: $e");
-    }
   }
 
   @override
@@ -59,7 +41,7 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
     var locale = AppLocalizations.of(context)!;
 
     return FutureBuilder<PrayerTimes>(
-      future: _apiService.getPrayerTimes("Cairo", "Egypt"),
+      future: _apiService.getPrayerTimes(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: AppColors.yellow));
@@ -79,7 +61,7 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
         _scheduleNotifications(times);
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20),
           child: Column(
             children: [
               Text(
@@ -90,16 +72,33 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
                       fontWeight: FontWeight.bold,
                     ),
               ),
+              const SizedBox(height: 5),
               Text(
-                times.date,
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(fontSize: 18),
+                "${times.dayAr} - ${times.dateHijri} هـ",
+                style: const TextStyle(color: AppColors.yellow, fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 20),
+              Text(
+                times.dateEn,
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(fontSize: 16),
+              ),
+              const SizedBox(height: 5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.location_on, color: AppColors.yellow, size: 18),
+                  Text(
+                    " ${times.region}, ${times.country}",
+                    style: TextStyle(color: provider.isDarkMode() ? Colors.white70 : Colors.black54),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildPrayerItem(context, "الفجر", _formatTime(times.fajr), provider.isDarkMode()),
+                    _buildPrayerItem(context, "الشروق", _formatTime(times.sunrise), provider.isDarkMode()),
                     _buildPrayerItem(context, "الظهر", _formatTime(times.dhuhr), provider.isDarkMode()),
                     _buildPrayerItem(context, "العصر", _formatTime(times.asr), provider.isDarkMode()),
                     _buildPrayerItem(context, "المغرب", _formatTime(times.maghrib), provider.isDarkMode()),
@@ -138,20 +137,33 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              time,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black,
-              ),
-            ),
-            Text(
               name,
               style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
                 color: AppColors.yellow,
               ),
+            ),
+            Row(
+              children: [
+                Text(
+                  time.split(' ').first, // الجزء الخاص بالأرقام (مثلاً 05:30)
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  time.split(' ').last, // الجزء الخاص بـ AM/PM
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

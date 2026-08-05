@@ -11,7 +11,7 @@ void main() {
     final apiService = ApiService();
 
     test('Fetch Prayer Times successfully', () async {
-      final prayerTimes = await apiService.getPrayerTimes('Cairo', 'Egypt');
+      final prayerTimes = await apiService.getPrayerTimes();
       expect(prayerTimes, isA<PrayerTimes>());
       expect(prayerTimes.fajr, isNotEmpty);
       print('✓ Prayer Times OK: Fajr is ${prayerTimes.fajr}');

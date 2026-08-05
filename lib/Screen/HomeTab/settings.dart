@@ -38,7 +38,7 @@ class _SettingsTabState extends State<SettingsTab> {
 
     try {
       if (!_shorebirdUpdater.isAvailable) {
-        _showSnackBar("Shorebird is not available");
+        _showSnackBar("Shorebird غير متاح (تأكد أنك تستخدم نسخة Release)");
         return;
       }
 
@@ -46,24 +46,24 @@ class _SettingsTabState extends State<SettingsTab> {
       
       if (!mounted) return;
 
-      if (status == UpdateStatus.upToDate) {
-        _showSnackBar(AppLocalizations.of(context)!.noUpdateAvailable);
-      } else if (status == UpdateStatus.outdated) {
-        _showSnackBar(AppLocalizations.of(context)!.updateAvailable);
-        _showSnackBar(AppLocalizations.of(context)!.updating);
-        
-        await _shorebirdUpdater.update();
-        
-        if (mounted) {
-          _showSnackBar(AppLocalizations.of(context)!.updateDownloaded);
-        }
-      } else if (status == UpdateStatus.restartRequired) {
-        _showSnackBar(AppLocalizations.of(context)!.updateDownloaded);
-      } else if (status == UpdateStatus.unavailable) {
-        _showSnackBar("Shorebird is not available");
+      switch (status) {
+        case UpdateStatus.upToDate:
+          _showSnackBar("تطبيقك محدث لآخر إصدار بالفعل");
+          break;
+        case UpdateStatus.outdated:
+          _showSnackBar("يوجد تحديث جديد.. جاري التحميل الآن");
+          await _shorebirdUpdater.update();
+          _showSnackBar("تم تحميل التحديث! يرجى إغلاق التطبيق وفتحه مجدداً");
+          break;
+        case UpdateStatus.restartRequired:
+          _showSnackBar("يوجد تحديث محمل بالفعل، يرجى إعادة تشغيل التطبيق");
+          break;
+        case UpdateStatus.unavailable:
+          _showSnackBar("خدمة التحديث غير متوفرة حالياً");
+          break;
       }
     } catch (e) {
-      _showSnackBar("Error checking for updates: $e");
+      _showSnackBar("حدث خطأ أثناء فحص التحديثات: $e");
     } finally {
       if (mounted) {
         setState(() {

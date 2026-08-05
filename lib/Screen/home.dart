@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:islami/Screen/HomeTab/ahadeth.dart';
+import 'package:islami/Screen/HomeTab/duas.dart';
 import 'package:islami/Screen/HomeTab/quran.dart';
 import 'package:islami/Screen/HomeTab/radio.dart';
 import 'package:islami/Screen/HomeTab/settings.dart';
 import 'package:islami/Screen/HomeTab/prayer_times.dart';
 import 'package:islami/Screen/HomeTab/azkar.dart';
+import 'package:islami/services/api_service.dart';
+import 'package:islami/services/notification_service.dart';
 import 'package:islami/dezeen/images.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/l10n/app_localizations.dart';
@@ -21,11 +23,26 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPrayerNotifications();
+  }
+
+  Future<void> _initPrayerNotifications() async {
+    try {
+      final times = await ApiService().getPrayerTimes();
+      await NotificationService().scheduleAllPrayers(times);
+    } catch (e) {
+      debugPrint("Error initializing prayer notifications: $e");
+    }
+  }
   
   final List<Widget> tabs = [
     const QuranTab(),
-    const AhadethTab(),
-    const RadioTab(), // مدمج معه التفسير الآن
+    const DuasTab(),
+    const RadioTab(),
     const PrayerTimesTab(),
     const AzkarTab(),
     const SettingsTab(),
@@ -44,11 +61,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? AppImage.backgroundDark 
                 : AppImage.backgroundHome
           ),
-          fit: BoxFit.fill,
+          fit: BoxFit.cover, // تغيير إلى cover لتغطية الشاشة بالكامل
         ),
       ),
       child: Scaffold(
-        body: SafeArea(child: tabs[currentIndex]),
+        backgroundColor: Colors.transparent, // جعل خلفية السكافولد شفافة لتظهر الصورة
+        body: SafeArea(
+          child: IndexedStack(
+            index: currentIndex,
+            children: tabs,
+          ),
+        ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: currentIndex,
           type: BottomNavigationBarType.fixed,
@@ -63,12 +86,12 @@ class _HomeScreenState extends State<HomeScreen> {
               label: locale.quran,
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.format_list_bulleted),
-              label: locale.ahadeth,
+              icon: const Icon(Icons.favorite),
+              label: "الأدعية",
             ),
             BottomNavigationBarItem(
               icon: const ImageIcon(AssetImage(AppImage.icRadio)),
-              label: "${locale.radio} & ${locale.tafasir}",
+              label: locale.radio,
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.access_time_filled),
@@ -88,3 +111,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
