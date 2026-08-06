@@ -90,7 +90,7 @@ class _TafsirIndexScreenState extends State<TafsirIndexScreen> {
                 padding: const EdgeInsets.all(15),
                 itemCount: 114, // دائماً 114 لضمان ظهور القائمة
                 separatorBuilder: (context, index) => Divider(
-                  color: AppColors.yellow.withOpacity(0.3),
+                  color: AppColors.yellow.withValues(alpha: 0.3),
                   height: 1,
                 ),
                 itemBuilder: (context, index) {

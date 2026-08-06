@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:islami/l10n/app_localizations.dart';
 import 'package:islami/Screen/home.dart';
-import 'package:islami/Screen/quran.dart';
-import 'package:islami/Screen/HomeTab/quran_images_screen.dart';
+import 'package:islami/Screen/splash_screen.dart';
 import 'package:islami/Screen/HomeTab/surah_index_screen.dart';
 import 'package:islami/Screen/HomeTab/tafsir_details_screen.dart';
 import 'package:islami/Screen/HomeTab/tafsir_index_screen.dart';
 import 'package:islami/Screen/HomeTab/laylat_al_qadr_screen.dart';
 import 'package:islami/Screen/HomeTab/reciter_audio_screen.dart';
+import 'package:islami/Screen/HomeTab/azkar_screen.dart';
+import 'package:islami/Screen/HomeTab/duas_screen.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/dezeen/theme.dart';
 import 'package:islami/dezeen/connectivity_service.dart';
@@ -137,15 +138,16 @@ class _MyAppState extends State<MyApp> {
       locale: const Locale('ar'),
       routes: {
         HomeScreen.routeName: (_) => const HomeScreen(),
-        QuranScreen.routeName: (_) => const QuranScreen(),
-        QuranImagesScreen.routeName: (_) => const QuranImagesScreen(),
+        SplashScreen.routeName: (_) => const SplashScreen(),
         SurahIndexScreen.routeName: (_) => const SurahIndexScreen(),
         TafsirIndexScreen.routeName: (_) => const TafsirIndexScreen(),
         TafsirDetailsScreen.routeName: (_) => const TafsirDetailsScreen(surahNumber: 1, surahName: ""),
         LaylatAlQadrScreen.routeName: (_) => const LaylatAlQadrScreen(),
         ReciterAudioScreen.routeName: (_) => const ReciterAudioScreen(reciterId: 112),
+        AzkarScreen.routeName: (_) => const AzkarScreen(),
+        DuasScreen.routeName: (_) => const DuasScreen(),
       },
-      initialRoute: HomeScreen.routeName,
+      initialRoute: SplashScreen.routeName,
     );
   }
 }

@@ -73,9 +73,9 @@ class _TafsirDetailsScreenState extends State<TafsirDetailsScreen> {
                   margin: const EdgeInsets.only(bottom: 15),
                   padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
-                    color: provider.isDarkMode() ? Colors.black.withOpacity(0.6) : Colors.white.withOpacity(0.9),
+                    color: provider.isDarkMode() ? Colors.black.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: AppColors.yellow.withOpacity(0.5)),
+                    border: Border.all(color: AppColors.yellow.withValues(alpha: 0.5)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,

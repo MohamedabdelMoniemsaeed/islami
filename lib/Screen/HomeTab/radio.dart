@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:islami/models/radio_model.dart';
 import 'package:islami/services/api_service.dart';
 import 'package:islami/dezeen/colors.dart';
-import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/dezeen/images.dart';
 import 'package:provider/provider.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:islami/dezeen/shiar.dart';
 
 class RadioTab extends StatefulWidget {
   const RadioTab({super.key});
@@ -21,7 +21,6 @@ class _RadioTabState extends State<RadioTab> {
   final ApiService _apiService = ApiService();
   List<RadioItem> _radios = [];
   bool _isLoadingRadio = true;
-  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -68,7 +67,6 @@ class _RadioTabState extends State<RadioTab> {
 
       _showInfo("جاري الاتصال بالبث المباشر...");
 
-      // محاولة التشغيل مع وبدون MediaItem لضمان العمل
       try {
         final audioSource = AudioSource.uri(
           Uri.parse(radio.url),
@@ -81,7 +79,6 @@ class _RadioTabState extends State<RadioTab> {
         );
         await _audioPlayer.setAudioSource(audioSource);
       } catch (e) {
-        // إذا فشل نظام الخلفية، نشغل الرابط بشكل عادي
         await _audioPlayer.setUrl(radio.url);
       }
       
@@ -123,7 +120,7 @@ class _RadioTabState extends State<RadioTab> {
               border: Border.all(color: AppColors.yellow, width: 3),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.yellow.withOpacity(0.3),
+                  color: AppColors.yellow.withValues(alpha: 0.3),
                   blurRadius: 15,
                   spreadRadius: 2,
                 )
@@ -166,14 +163,15 @@ class _RadioTabState extends State<RadioTab> {
                             final playerState = snapshot.data;
                             final isThisPlaying = playerState?.playing ?? false;
                             final isCurrent = _audioPlayer.audioSource != null && 
+                                             _audioPlayer.audioSource is UriAudioSource &&
                                              (_audioPlayer.audioSource as UriAudioSource).uri.toString() == radio.url;
 
                             return Container(
                               margin: const EdgeInsets.symmetric(vertical: 8),
                               decoration: BoxDecoration(
                                 color: provider.isDarkMode() 
-                                    ? AppColors.yellowDark.withOpacity(0.8) 
-                                    : Colors.white.withOpacity(0.8),
+                                    ? AppColors.yellowDark.withValues(alpha: 0.8) 
+                                    : Colors.white.withValues(alpha: 0.8),
                                 borderRadius: BorderRadius.circular(15),
                                 border: Border.all(
                                   color: (isCurrent && isThisPlaying) ? AppColors.yellow : Colors.transparent,
@@ -197,7 +195,6 @@ class _RadioTabState extends State<RadioTab> {
                                     size: 40,
                                   ),
                                   onPressed: () {
-                                    setState(() => _currentIndex = index);
                                     _playPause(radio);
                                   },
                                 ),
@@ -212,5 +209,3 @@ class _RadioTabState extends State<RadioTab> {
     );
   }
 }
-
-

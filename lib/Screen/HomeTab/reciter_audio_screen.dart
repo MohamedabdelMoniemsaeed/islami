@@ -70,14 +70,18 @@ class _ReciterAudioScreenState extends State<ReciterAudioScreen> {
         );
         await _audioPlayer.setAudioSource(audioSource);
         await _audioPlayer.play();
-        setState(() {
-          _currentPlayingIndex = index;
-        });
+        if (mounted) {
+          setState(() {
+            _currentPlayingIndex = index;
+          });
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("خطأ في التشغيل: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("خطأ في التشغيل: $e")),
+        );
+      }
     }
   }
 
@@ -115,7 +119,7 @@ class _ReciterAudioScreenState extends State<ReciterAudioScreen> {
                 : ListView.separated(
                     padding: const EdgeInsets.all(15),
                     itemCount: tracks.length,
-                    separatorBuilder: (context, index) => Divider(color: AppColors.yellow.withOpacity(0.3)),
+                    separatorBuilder: (context, index) => Divider(color: AppColors.yellow.withValues(alpha: 0.3)),
                     itemBuilder: (context, index) {
                       final track = tracks[index];
                       return StreamBuilder<PlayerState>(

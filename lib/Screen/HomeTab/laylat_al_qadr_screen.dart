@@ -58,10 +58,10 @@ class _LaylatAlQadrScreenState extends State<LaylatAlQadrScreen> {
                   decoration: BoxDecoration(
                     color: provider.isDarkMode() ? AppColors.yellowDark : Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.yellow.withOpacity(0.5)),
+                    border: Border.all(color: AppColors.yellow.withValues(alpha: 0.5)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
                       )

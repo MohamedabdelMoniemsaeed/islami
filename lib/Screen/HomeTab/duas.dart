@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:islami/dezeen/colors.dart';
-import 'package:islami/l10n/app_localizations.dart';
 import 'package:islami/services/api_service.dart';
 import 'package:islami/models/duas_model.dart';
 import 'package:islami/dezeen/shiar.dart';
