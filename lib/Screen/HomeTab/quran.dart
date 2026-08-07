@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:provider/provider.dart';
 
@@ -11,13 +12,14 @@ class QuranTab extends StatefulWidget {
 
 class _QuranTabState extends State<QuranTab> {
   late PageController _pageController;
-  int _lastProviderPage = -1;
+  int _lastJumpRequest = 0;
 
   @override
   void initState() {
     super.initState();
     final provider = Provider.of<AppProvider>(context, listen: false);
     _pageController = PageController(initialPage: provider.currentQuranPage);
+    _lastJumpRequest = provider.jumpRequests;
   }
 
   @override
@@ -30,11 +32,14 @@ class _QuranTabState extends State<QuranTab> {
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
 
-    // التحقق إذا كان هناك طلب انتقال لصفحة جديدة من الفهرس (عبر البروفايدر)
-    if (provider.currentQuranPage != _lastProviderPage) {
+    // التحقق من وجود طلب انتقال جديد (حتى لو لنفس الصفحة)
+    if (provider.jumpRequests > _lastJumpRequest) {
       if (_pageController.hasClients) {
-        _pageController.jumpToPage(provider.currentQuranPage);
-        _lastProviderPage = provider.currentQuranPage;
+        // استخدام Future.microtask لضمان أن القفزة تحدث بعد بناء الواجهة
+        Future.microtask(() {
+          _pageController.jumpToPage(provider.currentQuranPage);
+        });
+        _lastJumpRequest = provider.jumpRequests;
       }
     }
 
@@ -46,17 +51,51 @@ class _QuranTabState extends State<QuranTab> {
         itemCount: 603,
         onPageChanged: (page) {
           provider.updateQuranPage(page);
-          _lastProviderPage = page;
         },
         itemBuilder: (context, index) {
           final pageNumber = (index + 1).toString().padLeft(3, '0');
-          return InteractiveViewer(
-            child: Image.asset(
-              'assets/images/quran/$pageNumber.png',
-              fit: BoxFit.fill,
-              width: double.infinity,
-              height: double.infinity,
-            ),
+          return Stack(
+            children: [
+              InteractiveViewer(
+                child: Image.asset(
+                  'assets/images/quran/$pageNumber.png',
+                  fit: BoxFit.fill,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+              ),
+              // علامة الشريط (Bookmark Ribbon) تظهر فقط في الصفحة المحفوظة الحالية
+              if (provider.bookmarkedPage == index)
+                Positioned(
+                  top: 0,
+                  left: 20,
+                  child: Container(
+                    width: 40,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: AppColors.yellow.withValues(alpha: 0.9),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(12),
+                        bottomRight: Radius.circular(12),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
+                    ),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Icon(Icons.bookmark, color: Colors.white, size: 28),
+                        SizedBox(height: 10),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           );
         },
       ),

@@ -86,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // زر القائمة (ثلاث شرط) يظهر في كل الصفحات ما عدا الإعدادات
               if (currentIndex != 3)
                 Positioned(
-                  top: 20,
+                  top: 10, // تم الرفع للأعلى قليلاً كما طلبت
                   right: 15,
                   child: IconButton(
                     icon:
@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildDynamicNavItem(0, Icons.book, locale.quran, isDark),
               _buildDynamicNavItem(1, Icons.radio, locale.radio, isDark),
               _buildDynamicNavItem(
-                  2, Icons.access_time_filled, locale.prayerTimes, isDark),
+                  2, Icons.access_time_filled, "مواقيت", isDark),
               _buildDynamicNavItem(3, Icons.settings, locale.settings, isDark),
             ],
           ),
@@ -144,11 +144,28 @@ class _HomeScreenState extends State<HomeScreen> {
               final selectedPage =
                   await Navigator.pushNamed(context, SurahIndexScreen.routeName);
               if (selectedPage != null && selectedPage is int) {
-                // نحتاج لإبلاغ شاشة القرآن بالانتقال للصفحة
-                // سنقوم بتغيير التبويب للقرآن أولاً ثم التوجيه
                 setState(() => currentIndex = 0);
-                // استخدام Provider لإرسال رقم الصفحة المطلوب
-                provider.updateQuranPage(selectedPage);
+                provider.requestJumpToPage(selectedPage - 1);
+              }
+            }, isDark),
+            const Divider(),
+            _buildDrawerItem(Icons.bookmark, "حفظ علامة", () {
+              provider.saveBookmark();
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("تم حفظ العلامة بنجاح")),
+              );
+            }, isDark),
+            const Divider(),
+            _buildDrawerItem(Icons.bookmark_added, "انتقال إلى العلامة", () {
+              if (provider.bookmarkedPage != null) {
+                setState(() => currentIndex = 0);
+                provider.requestJumpToPage(provider.bookmarkedPage!);
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("لا توجد علامة محفوظة")),
+                );
               }
             }, isDark),
             const Divider(),
