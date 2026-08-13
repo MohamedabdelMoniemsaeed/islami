@@ -25,11 +25,24 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install --repo-update
+
       - name: Build iOS
         run: flutter build ios --release --no-codesign
 
-      - name: Upload iOS App
+      - name: Create IPA
+        run: |
+          rm -rf Payload
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
+          zip -r ios-app.ipa Payload
+
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: ios-app
-          path: build/ios/iphoneos/Runner.app
+          name: ios-ipa
+          path: ios-app.ipa
+          retention-days: 7
