@@ -25,7 +25,7 @@ void main() async {
   
   // 1. تهيئة مشغل الصوت في الخلفية أولاً
   await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.example.islami.audio',
+    androidNotificationChannelId: 'com.exam.ple.islami.audio',
     androidNotificationChannelName: 'Radio Playback',
     androidNotificationOngoing: true,
   );
