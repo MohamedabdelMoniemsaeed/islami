@@ -1,4 +1,4 @@
-name: Weekly Flutter Auto Update + Fix
+name: Weekly Flutter Auto Update + Fix (Gemini then Claude)
 
 on:
   schedule:
@@ -9,10 +9,14 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  HAS_GEMINI: ${{ secrets.AI != '' }}
+  HAS_CLAUDE: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,6 +26,11 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Setup Node (for Gemini CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       # 1) ترقية كل شيء حتى الإصدارات الكبيرة
       - name: Upgrade ALL packages (major too)
@@ -33,17 +42,47 @@ jobs:
         continue-on-error: true
         run: flutter analyze --no-fatal-infos
 
-      # 3) لو في أخطاء: Claude يصلح الكود بنفسه
-      - name: Auto-fix code with Claude
+      # 3) المحاولة الأولى: Gemini (لحد 3 محاولات)
+      - name: Auto-fix with Gemini
+        if: steps.analyze1.outcome == 'failure' && env.HAS_GEMINI == 'true'
+        continue-on-error: true
+        env:
+          GEMINI_API_KEY: ${{ secrets.AI }}
+        run: |
+          npm install -g @google/gemini-cli
+          for i in 1 2 3; do
+            echo "=== Gemini attempt $i ==="
+            if flutter analyze --no-fatal-infos > "$RUNNER_TEMP/analyze_output.txt" 2>&1; then
+              echo "No more errors."
+              break
+            fi
+            PROMPT="This Flutter project's dependencies were just upgraded to their latest major versions, and flutter analyze reports errors caused by breaking API changes.
+          Fix the Dart code in lib/ (and test/) so it compiles with the new package APIs.
+          Rules: keep the app behavior exactly the same, do not remove features, do not change pubspec.yaml versions, do not run git commands. Edit the files directly.
+          Here is the current output of flutter analyze:
+          $(cat "$RUNNER_TEMP/analyze_output.txt")"
+            gemini --yolo -p "$PROMPT" || true
+          done
+
+      # 4) فحص بعد Gemini
+      - name: Analyze (after Gemini)
+        id: analyze_mid
         if: steps.analyze1.outcome == 'failure'
+        continue-on-error: true
+        run: flutter analyze --no-fatal-infos
+
+      # 5) لو لسه فيه أخطاء: Claude يكمل الإصلاح
+      - name: Auto-fix with Claude (fallback)
+        if: steps.analyze_mid.outcome == 'failure' && env.HAS_CLAUDE == 'true'
+        continue-on-error: true
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             This Flutter project's dependencies were just upgraded to their latest
-            major versions, and `flutter analyze` now reports errors caused by
-            breaking API changes.
+            major versions, and `flutter analyze` still reports errors caused by
+            breaking API changes (a previous automatic fix attempt did not finish).
             Your task:
             1. Run `flutter analyze` and read every error.
             2. Fix the Dart code in lib/ (and test/) to match the new package APIs.
@@ -57,7 +96,7 @@ jobs:
             --max-turns 25
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(flutter analyze:*),Bash(flutter pub get:*),Bash(dart format:*),Bash(dart fix:*)"
 
-      # 4) فحوصات نهائية
+      # 6) فحوصات نهائية
       - name: Analyze (final)
         id: analyze2
         continue-on-error: true
@@ -84,19 +123,25 @@ jobs:
             echo "note=⚠️ فيه فحوصات فشلت. راجع الكود قبل الدمج ولا تدمج قبل ما تجرب التطبيق." >> $GITHUB_OUTPUT
           fi
 
-      # 5) PR دايماً للمراجعة (Draft لو في فشل). مفيش دمج تلقائي.
+      # 7) PR دايماً للمراجعة (Draft لو في فشل). مفيش دمج تلقائي.
       - name: Open Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
           branch: auto/weekly-update
           title: "chore: weekly full update + auto-fix"
           commit-message: "chore: upgrade dependencies and fix breaking changes"
+          add-paths: |
+            lib/**
+            test/**
+            pubspec.yaml
+            pubspec.lock
           draft: ${{ steps.status.outputs.draft }}
           body: |
-            تحديث أسبوعي تلقائي لكل الحزم (Major) مع إصلاح الكود تلقائياً.
+            تحديث أسبوعي تلقائي لكل الحزم (Major) مع إصلاح الكود تلقائياً (Gemini ثم Claude لو احتاج).
 
             ${{ steps.status.outputs.note }}
 
-            - Analyze: ${{ steps.analyze2.outcome }}
+            - Analyze بعد Gemini: ${{ steps.analyze_mid.outcome }}
+            - Analyze النهائي: ${{ steps.analyze2.outcome }}
             - Test: ${{ steps.test.outcome }}
             - Build: ${{ steps.build.outcome }}
