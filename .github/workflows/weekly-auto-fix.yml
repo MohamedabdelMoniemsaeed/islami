@@ -1,25 +1,42 @@
-name: Weekly Flutter Auto Update + Fix (Gemini then Claude)
+
+name: Flutter Maintenance - Safe Updates and Major Upgrades
 
 on:
   schedule:
-    - cron: '0 3 * * 1'   # كل اسبوع يوم الاتنين 3 الفجر UTC
-  workflow_dispatch:       # تشغيل يدوي
+    - cron: "0 3 * * 1" # Monday, 03:00 UTC
+  workflow_dispatch:
+    inputs:
+      update_track:
+        description: "Select the dependency update track"
+        required: true
+        type: choice
+        default: safe
+        options:
+          - safe
+          - major
 
 permissions:
   contents: write
   pull-requests: write
 
-env:
-  HAS_GEMINI: ${{ secrets.AI != '' }}
-  HAS_CLAUDE: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+concurrency:
+  group: flutter-maintenance-${{ github.ref }}-${{ inputs.update_track || 'safe' }}
+  cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+
+    env:
+      HAS_GEMINI: ${{ secrets.AI != '' }}
+      HAS_CLAUDE: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -27,121 +44,180 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Setup Node (for Gemini CLI)
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 1) ترقية كل شيء حتى الإصدارات الكبيرة
-      - name: Upgrade ALL packages (major too)
+      - name: Record Flutter and Dart versions
+        run: |
+          flutter --version
+          dart --version
+
+      # Safe track respects existing version constraints.
+      - name: Safe dependency upgrade
+        if: github.event_name != 'workflow_dispatch' || inputs.update_track == 'safe'
+        run: flutter pub upgrade
+
+      # Major track is manual and isolated from the weekly safe track.
+      - name: Major dependency upgrade
+        if: github.event_name == 'workflow_dispatch' && inputs.update_track == 'major'
         run: flutter pub upgrade --major-versions
 
-      # 2) فحص أولي
-      - name: Analyze (before fix)
-        id: analyze1
+      - name: Check dependency resolution
+        run: flutter pub get
+
+      - name: Format Dart source before analysis
+        run: |
+          if [ -d lib ]; then dart format lib; fi
+          if [ -d test ]; then dart format test; fi
+
+      - name: Analyze before AI repair
+        id: analyze_before
         continue-on-error: true
         run: flutter analyze --no-fatal-infos
 
-      # 3) المحاولة الأولى: Gemini (لحد 3 محاولات)
-      - name: Auto-fix with Gemini
-        if: steps.analyze1.outcome == 'failure' && env.HAS_GEMINI == 'true'
+      - name: Install Gemini CLI
+        if: steps.analyze_before.outcome == 'failure' && env.HAS_GEMINI == 'true'
+        run: npm install --global @google/gemini-cli
+
+      - name: Repair with Gemini
+        if: steps.analyze_before.outcome == 'failure' && env.HAS_GEMINI == 'true'
         continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.AI }}
         run: |
-          npm install -g @google/gemini-cli
           for i in 1 2 3; do
-            echo "=== Gemini attempt $i ==="
-            if flutter analyze --no-fatal-infos > "$RUNNER_TEMP/analyze_output.txt" 2>&1; then
-              echo "No more errors."
+            echo "Gemini repair attempt $i"
+
+            if flutter analyze --no-fatal-infos; then
               break
             fi
-            PROMPT="This Flutter project's dependencies were just upgraded to their latest major versions, and flutter analyze reports errors caused by breaking API changes.
-          Fix the Dart code in lib/ (and test/) so it compiles with the new package APIs.
-          Rules: keep the app behavior exactly the same, do not remove features, do not change pubspec.yaml versions, do not run git commands. Edit the files directly.
-          Here is the current output of flutter analyze:
-          $(cat "$RUNNER_TEMP/analyze_output.txt")"
-            gemini --yolo -p "$PROMPT" || true
+
+            flutter analyze --no-fatal-infos \
+              > "$RUNNER_TEMP/flutter-analyze.txt" 2>&1 || true
+
+            export REPAIR_PROMPT="Fix the Flutter/Dart analysis errors in lib/ and test/ using the current dependency APIs. Read the errors in $RUNNER_TEMP/flutter-analyze.txt. Preserve existing behavior and features. Do not modify pubspec.yaml or pubspec.lock. Do not run git commands. Do not edit workflows, credentials, signing files, or release configuration. Make minimal code changes, then run dart format on changed Dart files and rerun flutter analyze."
+
+            gemini --yolo -p "$REPAIR_PROMPT" || true
+
+            if flutter analyze --no-fatal-infos; then
+              break
+            fi
           done
 
-      # 4) فحص بعد Gemini
-      - name: Analyze (after Gemini)
+      - name: Analyze after Gemini
         id: analyze_mid
-        if: steps.analyze1.outcome == 'failure'
+        if: steps.analyze_before.outcome == 'failure'
         continue-on-error: true
         run: flutter analyze --no-fatal-infos
 
-      # 5) لو لسه فيه أخطاء: Claude يكمل الإصلاح
-      - name: Auto-fix with Claude (fallback)
+      - name: Repair with Claude
         if: steps.analyze_mid.outcome == 'failure' && env.HAS_CLAUDE == 'true'
         continue-on-error: true
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
-            This Flutter project's dependencies were just upgraded to their latest
-            major versions, and `flutter analyze` still reports errors caused by
-            breaking API changes (a previous automatic fix attempt did not finish).
-            Your task:
-            1. Run `flutter analyze` and read every error.
-            2. Fix the Dart code in lib/ (and test/) to match the new package APIs.
-               Check each package's changelog or source in the pub cache if needed.
-            3. Keep the app's behavior exactly the same. Do not remove features.
-            4. Do not change pubspec.yaml versions.
-            5. Re-run `flutter analyze` until there are no errors, or stop if you
-               cannot fix something and explain why.
-            Do not commit or push. Just edit the files.
-          claude_args: |
-            --max-turns 25
-            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(flutter analyze:*),Bash(flutter pub get:*),Bash(dart format:*),Bash(dart fix:*)"
+            Fix the remaining Flutter/Dart analyzer errors in lib/ and test/.
+            Inspect the full analyzer output and use the resolved package APIs.
 
-      # 6) فحوصات نهائية
-      - name: Analyze (final)
-        id: analyze2
+            Preserve app behavior and all existing features.
+            Do not change pubspec.yaml or pubspec.lock.
+            Do not commit, push, or modify GitHub workflows, secrets,
+            signing files, or release configuration.
+            Make minimal changes. Format changed Dart files and run
+            flutter analyze --no-fatal-infos.
+            If an issue cannot be fixed safely, explain why.
+          claude_args: |
+            --max-turns 15
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(flutter analyze:*),Bash(dart format:*),Bash(flutter pub get:*)"
+
+      - name: Final dependency verification
+        id: deps
+        continue-on-error: true
+        run: flutter pub get --offline
+
+      - name: Final formatting check
+        id: format
+        continue-on-error: true
+        run: |
+          if [ -d lib ]; then
+            dart format --output=none --set-exit-if-changed lib
+          fi
+          if [ -d test ]; then
+            dart format --output=none --set-exit-if-changed test
+          fi
+
+      - name: Final analysis
+        id: analyze
         continue-on-error: true
         run: flutter analyze --no-fatal-infos
 
-      - name: Test
-        id: test
+      - name: Tests
+        id: tests
         continue-on-error: true
-        run: flutter test || echo "No tests found"
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "::error::No test/ directory found. Add automated tests."
+            exit 1
+          fi
 
-      - name: Build check
+      - name: Debug APK build
         id: build
         continue-on-error: true
         run: flutter build apk --debug
 
-      - name: Compute status
+      - name: Determine PR status
         id: status
+        if: always()
+        env:
+          DEPS: ${{ steps.deps.outcome }}
+          FORMAT: ${{ steps.format.outcome }}
+          ANALYZE: ${{ steps.analyze.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+          BUILD: ${{ steps.build.outcome }}
         run: |
-          if [ "${{ steps.analyze2.outcome }}" = "success" ] && [ "${{ steps.build.outcome }}" = "success" ]; then
-            echo "draft=false" >> $GITHUB_OUTPUT
-            echo "note=✅ الفحص والبناء نجحوا." >> $GITHUB_OUTPUT
+          if [ "$DEPS" = "success" ] &&
+             [ "$FORMAT" = "success" ] &&
+             [ "$ANALYZE" = "success" ] &&
+             [ "$TESTS" = "success" ] &&
+             [ "$BUILD" = "success" ]; then
+            echo "draft=false" >> "$GITHUB_OUTPUT"
+            echo "note=All required quality gates passed." >> "$GITHUB_OUTPUT"
           else
-            echo "draft=true" >> $GITHUB_OUTPUT
-            echo "note=⚠️ فيه فحوصات فشلت. راجع الكود قبل الدمج ولا تدمج قبل ما تجرب التطبيق." >> $GITHUB_OUTPUT
+            echo "draft=true" >> "$GITHUB_OUTPUT"
+            echo "note=One or more quality gates failed. Manual review required." >> "$GITHUB_OUTPUT"
           fi
 
-      # 7) PR دايماً للمراجعة (Draft لو في فشل). مفيش دمج تلقائي.
-      - name: Open Pull Request
+      - name: Create or update Pull Request
+        if: always() && steps.status.outcome == 'success'
         uses: peter-evans/create-pull-request@v6
         with:
-          branch: auto/weekly-update
-          title: "chore: weekly full update + auto-fix"
-          commit-message: "chore: upgrade dependencies and fix breaking changes"
-          add-paths: |
-            lib/**
-            test/**
-            pubspec.yaml
-            pubspec.lock
+          branch: ${{ inputs.update_track == 'major' && 'auto/major-update' || 'auto/weekly-update' }}
+          delete-branch: false
+          title: ${{ inputs.update_track == 'major' && 'chore: review major Flutter dependency upgrades' || 'chore: weekly safe Flutter dependency updates' }}
+          commit-message: "chore: update Flutter dependencies and repair code"
           draft: ${{ steps.status.outputs.draft }}
           body: |
-            تحديث أسبوعي تلقائي لكل الحزم (Major) مع إصلاح الكود تلقائياً (Gemini ثم Claude لو احتاج).
+            ## Automated Flutter Maintenance
+
+            Track: `${{ inputs.update_track || 'safe (scheduled)' }}`
 
             ${{ steps.status.outputs.note }}
 
-            - Analyze بعد Gemini: ${{ steps.analyze_mid.outcome }}
-            - Analyze النهائي: ${{ steps.analyze2.outcome }}
-            - Test: ${{ steps.test.outcome }}
-            - Build: ${{ steps.build.outcome }}
+            | Quality gate | Result |
+            |---|---|
+            | Dependency verification | ${{ steps.deps.outcome }} |
+            | Dart formatting | ${{ steps.format.outcome }} |
+            | Final analysis | ${{ steps.analyze.outcome }} |
+            | Tests | ${{ steps.tests.outcome }} |
+            | Debug APK build | ${{ steps.build.outcome }} |
+            | Analysis before AI repair | ${{ steps.analyze_before.outcome }} |
+            | Analysis after Gemini | ${{ steps.analyze_mid.outcome }} |
+
+            Review the dependency diff, app behavior, and test results
+            before merging. Major upgrades must receive additional manual
+            review. This workflow never merges or publishes automatically.
