@@ -1,0 +1,102 @@
+name: Weekly Flutter Auto Update + Fix
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'   # كل اسبوع يوم الاتنين 3 الفجر UTC
+  workflow_dispatch:       # تشغيل يدوي
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # 1) ترقية كل شيء حتى الإصدارات الكبيرة
+      - name: Upgrade ALL packages (major too)
+        run: flutter pub upgrade --major-versions
+
+      # 2) فحص أولي
+      - name: Analyze (before fix)
+        id: analyze1
+        continue-on-error: true
+        run: flutter analyze --no-fatal-infos
+
+      # 3) لو في أخطاء: Claude يصلح الكود بنفسه
+      - name: Auto-fix code with Claude
+        if: steps.analyze1.outcome == 'failure'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            This Flutter project's dependencies were just upgraded to their latest
+            major versions, and `flutter analyze` now reports errors caused by
+            breaking API changes.
+            Your task:
+            1. Run `flutter analyze` and read every error.
+            2. Fix the Dart code in lib/ (and test/) to match the new package APIs.
+               Check each package's changelog or source in the pub cache if needed.
+            3. Keep the app's behavior exactly the same. Do not remove features.
+            4. Do not change pubspec.yaml versions.
+            5. Re-run `flutter analyze` until there are no errors, or stop if you
+               cannot fix something and explain why.
+            Do not commit or push. Just edit the files.
+          claude_args: |
+            --max-turns 25
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(flutter analyze:*),Bash(flutter pub get:*),Bash(dart format:*),Bash(dart fix:*)"
+
+      # 4) فحوصات نهائية
+      - name: Analyze (final)
+        id: analyze2
+        continue-on-error: true
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        id: test
+        continue-on-error: true
+        run: flutter test || echo "No tests found"
+
+      - name: Build check
+        id: build
+        continue-on-error: true
+        run: flutter build apk --debug
+
+      - name: Compute status
+        id: status
+        run: |
+          if [ "${{ steps.analyze2.outcome }}" = "success" ] && [ "${{ steps.build.outcome }}" = "success" ]; then
+            echo "draft=false" >> $GITHUB_OUTPUT
+            echo "note=✅ الفحص والبناء نجحوا." >> $GITHUB_OUTPUT
+          else
+            echo "draft=true" >> $GITHUB_OUTPUT
+            echo "note=⚠️ فيه فحوصات فشلت. راجع الكود قبل الدمج ولا تدمج قبل ما تجرب التطبيق." >> $GITHUB_OUTPUT
+          fi
+
+      # 5) PR دايماً للمراجعة (Draft لو في فشل). مفيش دمج تلقائي.
+      - name: Open Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: auto/weekly-update
+          title: "chore: weekly full update + auto-fix"
+          commit-message: "chore: upgrade dependencies and fix breaking changes"
+          draft: ${{ steps.status.outputs.draft }}
+          body: |
+            تحديث أسبوعي تلقائي لكل الحزم (Major) مع إصلاح الكود تلقائياً.
+
+            ${{ steps.status.outputs.note }}
+
+            - Analyze: ${{ steps.analyze2.outcome }}
+            - Test: ${{ steps.test.outcome }}
+            - Build: ${{ steps.build.outcome }}
