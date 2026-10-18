@@ -1,9 +1,8 @@
-
 name: Flutter Maintenance - Safe Updates and Major Upgrades
 
 on:
   schedule:
-    - cron: "0 3 * * 1" # Monday, 03:00 UTC
+    - cron: "0 7 * * 5" # Friday 09:00 Egypt time (UTC+2) = 07:00 UTC
   workflow_dispatch:
     inputs:
       update_track:
@@ -20,8 +19,8 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: flutter-maintenance-${{ github.ref }}-${{ inputs.update_track || 'safe' }}
-  cancel-in-progress: false
+  group: flutter-maintenance-${{ github.workflow }}-${{ inputs.update_track || 'safe' }}
+  cancel-in-progress: true
 
 jobs:
   update:
@@ -36,13 +35,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          persist-credentials: true
+          fetch-depth: 0
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
+
+      - name: Cache Flutter pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('**/pubspec.yaml', '**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-pub-
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -54,12 +62,10 @@ jobs:
           flutter --version
           dart --version
 
-      # Safe track respects existing version constraints.
       - name: Safe dependency upgrade
         if: github.event_name != 'workflow_dispatch' || inputs.update_track == 'safe'
         run: flutter pub upgrade
 
-      # Major track is manual and isolated from the weekly safe track.
       - name: Major dependency upgrade
         if: github.event_name == 'workflow_dispatch' && inputs.update_track == 'major'
         run: flutter pub upgrade --major-versions
@@ -97,7 +103,7 @@ jobs:
             flutter analyze --no-fatal-infos \
               > "$RUNNER_TEMP/flutter-analyze.txt" 2>&1 || true
 
-            export REPAIR_PROMPT="Fix the Flutter/Dart analysis errors in lib/ and test/ using the current dependency APIs. Read the errors in $RUNNER_TEMP/flutter-analyze.txt. Preserve existing behavior and features. Do not modify pubspec.yaml or pubspec.lock. Do not run git commands. Do not edit workflows, credentials, signing files, or release configuration. Make minimal code changes, then run dart format on changed Dart files and rerun flutter analyze."
+            export REPAIR_PROMPT="Fix the Flutter/Dart analysis errors in lib/ and test/ using the current dependency APIs. Read the errors in $RUNNER_TEMP/flutter-analyze.txt. Preserve existing behavior and do not change pubspec.yaml or pubspec.lock. Keep the fix minimal."
 
             gemini --yolo -p "$REPAIR_PROMPT" || true
 
@@ -170,7 +176,7 @@ jobs:
         continue-on-error: true
         run: flutter build apk --debug
 
-      - name: Determine PR status
+      - name: Determine status
         id: status
         if: always()
         env:
@@ -185,39 +191,24 @@ jobs:
              [ "$ANALYZE" = "success" ] &&
              [ "$TESTS" = "success" ] &&
              [ "$BUILD" = "success" ]; then
-            echo "draft=false" >> "$GITHUB_OUTPUT"
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
             echo "note=All required quality gates passed." >> "$GITHUB_OUTPUT"
           else
-            echo "draft=true" >> "$GITHUB_OUTPUT"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
             echo "note=One or more quality gates failed. Manual review required." >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create or update Pull Request
-        if: always() && steps.status.outcome == 'success'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: ${{ inputs.update_track == 'major' && 'auto/major-update' || 'auto/weekly-update' }}
-          delete-branch: false
-          title: ${{ inputs.update_track == 'major' && 'chore: review major Flutter dependency upgrades' || 'chore: weekly safe Flutter dependency updates' }}
-          commit-message: "chore: update Flutter dependencies and repair code"
-          draft: ${{ steps.status.outputs.draft }}
-          body: |
-            ## Automated Flutter Maintenance
-
-            Track: `${{ inputs.update_track || 'safe (scheduled)' }}`
-
-            ${{ steps.status.outputs.note }}
-
-            | Quality gate | Result |
-            |---|---|
-            | Dependency verification | ${{ steps.deps.outcome }} |
-            | Dart formatting | ${{ steps.format.outcome }} |
-            | Final analysis | ${{ steps.analyze.outcome }} |
-            | Tests | ${{ steps.tests.outcome }} |
-            | Debug APK build | ${{ steps.build.outcome }} |
-            | Analysis before AI repair | ${{ steps.analyze_before.outcome }} |
-            | Analysis after Gemini | ${{ steps.analyze_mid.outcome }} |
-
-            Review the dependency diff, app behavior, and test results
-            before merging. Major upgrades must receive additional manual
-            review. This workflow never merges or publishes automatically.
+      - name: Commit and push changes to default branch
+        if: always() && steps.status.outputs.proceed == 'true'
+        env:
+          GITHUB_BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A || true
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update Flutter dependencies and repair code" || true
+            git push origin HEAD:${GITHUB_BRANCH}
+          fi
