@@ -26,7 +26,8 @@ class NotificationService {
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initSettings =
         InitializationSettings(android: androidSettings);
-    await _notificationsPlugin.initialize(initSettings);
+    // تم تحديث واجهة الحزمة: now initialize requires a named parameter `settings`
+    await _notificationsPlugin.initialize(settings: initSettings);
   }
 
   Future<void> scheduleAllPrayers(PrayerTimes times) async {
@@ -68,15 +69,15 @@ class NotificationService {
     const NotificationDetails notificationDetails =
         NotificationDetails(android: androidDetails);
 
+    // تم تحديث واجهة الحزمة: zonedSchedule الآن يستخدم معلمات مسماة (named parameters)
     await _notificationsPlugin.zonedSchedule(
-      id,
-      'موعد الصلاة',
-      'حان الآن موعد $title',
-      tz.TZDateTime.from(scheduledTime, tz.local),
-      notificationDetails,
+      id: id,
+      title: 'موعد الصلاة',
+      body: 'حان الآن موعد $title',
+      scheduledDate: tz.TZDateTime.from(scheduledTime, tz.local),
+      notificationDetails: notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
+      // تمت إزالة/تغيير `uiLocalNotificationDateInterpretation` في النسخة الجديدة
     );
   }
 
@@ -84,4 +85,3 @@ class NotificationService {
     await _notificationsPlugin.cancelAll();
   }
 }
-
