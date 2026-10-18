@@ -8,6 +8,8 @@ import 'package:islami/models/tafsir_model.dart';
 import 'package:flutter/foundation.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('ApiService Integration Tests', () {
     final apiService = ApiService();
 
