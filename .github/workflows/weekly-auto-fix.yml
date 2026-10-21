@@ -103,7 +103,7 @@ jobs:
             flutter analyze --no-fatal-infos \
               > "$RUNNER_TEMP/flutter-analyze.txt" 2>&1 || true
 
-            export REPAIR_PROMPT="Fix the Flutter/Dart analysis errors in lib/ and test/ using the current dependency APIs. Read the errors in $RUNNER_TEMP/flutter-analyze.txt. Preserve existing behavior and do not change pubspec.yaml or pubspec.lock. Keep the fix minimal."
+            export REPAIR_PROMPT="Fix the Flutter/Dart analysis errors in lib/ and test/ using the current dependency APIs. Read the errors in $RUNNER_TEMP/flutter-analyze.txt. Preserve existing behavior and app features. Keep minimal changes. Use the current package APIs and update any outdated code patterns."
 
             gemini --yolo -p "$REPAIR_PROMPT" || true
 
@@ -175,6 +175,14 @@ jobs:
         id: build
         continue-on-error: true
         run: flutter build apk --debug
+
+      - name: Upload APK artifact
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: islami-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
 
       - name: Determine status
         id: status
