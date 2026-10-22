@@ -38,6 +38,13 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
 
+      - name: Confirm project root
+        run: |
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          pwd
+          ls -la
+          test -f "$GITHUB_WORKSPACE/pubspec.yaml" || { echo "::error::pubspec.yaml not found in repo root"; exit 1; }
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -57,31 +64,35 @@ jobs:
         with:
           node-version: 20
 
-      - name: Record Flutter and Dart versions
-        run: |
-          flutter --version
-          dart --version
-
       - name: Safe dependency upgrade
         if: github.event_name != 'workflow_dispatch' || inputs.update_track == 'safe'
-        run: flutter pub upgrade
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          flutter pub upgrade
 
       - name: Major dependency upgrade
         if: github.event_name == 'workflow_dispatch' && inputs.update_track == 'major'
-        run: flutter pub upgrade --major-versions
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          flutter pub upgrade --major-versions
 
       - name: Check dependency resolution
-        run: flutter pub get
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          flutter pub get
 
       - name: Format Dart source before analysis
         run: |
+          cd "$GITHUB_WORKSPACE"
           if [ -d lib ]; then dart format lib; fi
           if [ -d test ]; then dart format test; fi
 
       - name: Analyze before AI repair
         id: analyze_before
         continue-on-error: true
-        run: flutter analyze --no-fatal-infos
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          flutter analyze --no-fatal-infos
 
       - name: Install Gemini CLI
         if: steps.analyze_before.outcome == 'failure' && env.HAS_GEMINI == 'true'
@@ -93,6 +104,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.AI }}
         run: |
+          cd "$GITHUB_WORKSPACE"
           for i in 1 2 3; do
             echo "Gemini repair attempt $i"
 
@@ -100,10 +112,8 @@ jobs:
               break
             fi
 
-            flutter analyze --no-fatal-infos \
-              > "$RUNNER_TEMP/flutter-analyze.txt" 2>&1 || true
-
-            export REPAIR_PROMPT="Fix the Flutter/Dart analysis errors in lib/ and test/ using the current dependency APIs. Read the errors in $RUNNER_TEMP/flutter-analyze.txt. Preserve existing behavior and app features. Keep minimal changes. Use the current package APIs and update any outdated code patterns."
+            flutter analyze --no-fatal-infos > "$RUNNER_TEMP/flutter-analyze.txt" 2>&1 || true
+            export REPAIR_PROMPT="Fix the Flutter/Dart analysis errors in lib/ and test/ using the current dependency APIs. Read the errors in $RUNNER_TEMP/flutter-analyze.txt. Preserve existing behavior and do not change pubspec.yaml or pubspec.lock. Keep the fix minimal."
 
             gemini --yolo -p "$REPAIR_PROMPT" || true
 
@@ -112,58 +122,33 @@ jobs:
             fi
           done
 
-      - name: Analyze after Gemini
-        id: analyze_mid
-        if: steps.analyze_before.outcome == 'failure'
-        continue-on-error: true
-        run: flutter analyze --no-fatal-infos
-
-      - name: Repair with Claude
-        if: steps.analyze_mid.outcome == 'failure' && env.HAS_CLAUDE == 'true'
-        continue-on-error: true
-        uses: anthropics/claude-code-action@v1
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |
-            Fix the remaining Flutter/Dart analyzer errors in lib/ and test/.
-            Inspect the full analyzer output and use the resolved package APIs.
-
-            Preserve app behavior and all existing features.
-            Do not change pubspec.yaml or pubspec.lock.
-            Do not commit, push, or modify GitHub workflows, secrets,
-            signing files, or release configuration.
-            Make minimal changes. Format changed Dart files and run
-            flutter analyze --no-fatal-infos.
-            If an issue cannot be fixed safely, explain why.
-          claude_args: |
-            --max-turns 15
-            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(flutter analyze:*),Bash(dart format:*),Bash(flutter pub get:*)"
-
       - name: Final dependency verification
         id: deps
         continue-on-error: true
-        run: flutter pub get --offline
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          flutter pub get --offline
 
       - name: Final formatting check
         id: format
         continue-on-error: true
         run: |
-          if [ -d lib ]; then
-            dart format --output=none --set-exit-if-changed lib
-          fi
-          if [ -d test ]; then
-            dart format --output=none --set-exit-if-changed test
-          fi
+          cd "$GITHUB_WORKSPACE"
+          if [ -d lib ]; then dart format --output=none --set-exit-if-changed lib; fi
+          if [ -d test ]; then dart format --output=none --set-exit-if-changed test; fi
 
       - name: Final analysis
         id: analyze
         continue-on-error: true
-        run: flutter analyze --no-fatal-infos
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          flutter analyze --no-fatal-infos
 
       - name: Tests
         id: tests
         continue-on-error: true
         run: |
+          cd "$GITHUB_WORKSPACE"
           if [ -d test ]; then
             flutter test
           else
@@ -174,15 +159,9 @@ jobs:
       - name: Debug APK build
         id: build
         continue-on-error: true
-        run: flutter build apk --debug
-
-      - name: Upload APK artifact
-        if: steps.build.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: islami-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          flutter build apk --debug
 
       - name: Determine status
         id: status
@@ -200,10 +179,8 @@ jobs:
              [ "$TESTS" = "success" ] &&
              [ "$BUILD" = "success" ]; then
             echo "proceed=true" >> "$GITHUB_OUTPUT"
-            echo "note=All required quality gates passed." >> "$GITHUB_OUTPUT"
           else
             echo "proceed=false" >> "$GITHUB_OUTPUT"
-            echo "note=One or more quality gates failed. Manual review required." >> "$GITHUB_OUTPUT"
           fi
 
       - name: Commit and push changes to default branch
@@ -211,6 +188,7 @@ jobs:
         env:
           GITHUB_BRANCH: ${{ github.ref_name }}
         run: |
+          cd "$GITHUB_WORKSPACE"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A || true
