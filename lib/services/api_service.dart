@@ -211,7 +211,7 @@ class ApiService {
     
     // كحل أخير إذا فشل الـ API أو كان الرابط هو البث المباشر نفسه
     return RadioResponse(radios: [
-      RadioItem(id: 1, name: "إذاعة القرآن الكريم من القاهرة", url: _radioUrl)
+      const RadioItem(id: 1, name: "إذاعة القرآن الكريم من القاهرة", url: _radioUrl)
     ]);
   }
 }

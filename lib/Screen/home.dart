@@ -1,3 +1,4 @@
+import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:flutter/material.dart';
 import 'package:islami/dezeen/colors.dart';
 import 'package:islami/Screen/HomeTab/quran.dart';
@@ -64,15 +65,16 @@ class _HomeScreenState extends State<HomeScreen> {
     var locale = AppLocalizations.of(context)!;
     bool isDark = provider.isDarkMode();
 
-    return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(
-              isDark ? AppImage.backgroundDark : AppImage.backgroundHome),
-          fit: BoxFit.cover,
+    return ThemeSwitchingArea(
+      child: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(
+                isDark ? AppImage.backgroundDark : AppImage.backgroundHome),
+            fit: BoxFit.cover,
+          ),
         ),
-      ),
-      child: Scaffold(
+        child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: Colors.transparent,
         drawer: _buildAppDrawer(context, provider, isDark),
@@ -122,6 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

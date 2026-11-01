@@ -13,6 +13,7 @@ class CacheService {
   static const String keySurahsList = 'surahs_list_cache';
   static const String keySurahPrefix = 'surah_cache_';
   static const String keyTafsirPrefix = 'tafsir_cache_';
+  static const String keyRadioFavorites = 'radio_favorites';
 
   Future<void> saveData(String key, String data) async {
     final prefs = await SharedPreferences.getInstance();

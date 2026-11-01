@@ -15,7 +15,7 @@ class RadioItem {
   final String name;
   final String url;
 
-  RadioItem({
+  const RadioItem({
     required this.id,
     required this.name,
     required this.url,

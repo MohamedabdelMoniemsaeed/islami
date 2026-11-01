@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:islami/l10n/app_localizations.dart';
@@ -19,11 +20,15 @@ import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:shorebird_code_push/shorebird_code_push.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // 1. تهيئة مشغل الصوت في الخلفية أولاً
+
+  // 0. فحص تلقائي للتحديثات في الخلفية (سيتفعّل تلقائيًا في البناء اللي بيتوزع عبر Shorebird)
+  _autoUpdate();
+
+  // 1. تهيئة مشغل الصوت في الخلفية أولًا
   await JustAudioBackground.init(
     androidNotificationChannelId: 'com.example.islami.audio',
     androidNotificationChannelName: 'Radio Playback',
@@ -32,13 +37,30 @@ void main() async {
 
   // 2. تهيئة الإشعارات
   await NotificationService().init();
-  
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppProvider(),
       child: const MyApp(),
     ),
   );
+}
+
+/// فحص تلقائي في الخلفية عند فتح التطبيق: لو فيه تحديث جاهز، يعمل تلقائي.
+/// في النسخة العادية (غیر Shorebird) بيصمت ويعدي، فمفيش أثر على التشغيل العادي.
+Future<void> _autoUpdate() async {
+  try {
+    final updater = ShorebirdUpdater();
+    if (!updater.isAvailable) return;
+
+    final status = await updater.checkForUpdate();
+    if (status == UpdateStatus.outdated) {
+      // تحميل التحديث في الخلفية؛ هيتطبّق تلقائي عند أول إغلاق وفتح.
+      await updater.update();
+    }
+  } catch (e) {
+    debugPrint('Auto update check failed: $e');
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -118,36 +140,42 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
-    
-    return MaterialApp(
-      scaffoldMessengerKey: messengerKey,
-      title: 'Islami App',
-      debugShowCheckedModeBanner: false,
-      themeMode: provider.mode,
-      theme: Apptheme.lightTheme,
-      darkTheme: Apptheme.darkTheme,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('ar'),
-      ],
-      locale: const Locale('ar'),
-      routes: {
-        HomeScreen.routeName: (_) => const HomeScreen(),
-        SplashScreen.routeName: (_) => const SplashScreen(),
-        SurahIndexScreen.routeName: (_) => const SurahIndexScreen(),
-        TafsirIndexScreen.routeName: (_) => const TafsirIndexScreen(),
-        TafsirDetailsScreen.routeName: (_) => const TafsirDetailsScreen(surahNumber: 1, surahName: ""),
-        LaylatAlQadrScreen.routeName: (_) => const LaylatAlQadrScreen(),
-        ReciterAudioScreen.routeName: (_) => const ReciterAudioScreen(reciterId: 112),
-        AzkarScreen.routeName: (_) => const AzkarScreen(),
-        DuasScreen.routeName: (_) => const DuasScreen(),
+
+    return ThemeProvider(
+      initTheme:
+          provider.mode == ThemeMode.dark ? Apptheme.darkTheme : Apptheme.lightTheme,
+      builder: (context, myTheme) {
+        return MaterialApp(
+          scaffoldMessengerKey: messengerKey,
+          title: 'Islami App',
+          debugShowCheckedModeBanner: false,
+          theme: myTheme,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('ar'),
+          ],
+          locale: const Locale('ar'),
+          routes: {
+            HomeScreen.routeName: (_) => const HomeScreen(),
+            SplashScreen.routeName: (_) => const SplashScreen(),
+            SurahIndexScreen.routeName: (_) => const SurahIndexScreen(),
+            TafsirIndexScreen.routeName: (_) => const TafsirIndexScreen(),
+            TafsirDetailsScreen.routeName: (_) =>
+                const TafsirDetailsScreen(surahNumber: 1, surahName: ""),
+            LaylatAlQadrScreen.routeName: (_) => const LaylatAlQadrScreen(),
+            ReciterAudioScreen.routeName: (_) =>
+                const ReciterAudioScreen(reciterId: 112),
+            AzkarScreen.routeName: (_) => const AzkarScreen(),
+            DuasScreen.routeName: (_) => const DuasScreen(),
+          },
+          initialRoute: SplashScreen.routeName,
+        );
       },
-      initialRoute: SplashScreen.routeName,
     );
   }
 }

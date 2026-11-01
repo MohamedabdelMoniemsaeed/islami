@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:islami/dezeen/colors.dart';
 import 'package:islami/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import '../../dezeen/shiar.dart';
+import '../../dezeen/theme.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -51,9 +53,9 @@ class _SettingsTabState extends State<SettingsTab> {
           _showSnackBar("تطبيقك محدث لآخر إصدار بالفعل");
           break;
         case UpdateStatus.outdated:
-          _showSnackBar("يوجد تحديث جديد.. جاري التحميل الآن");
+          // السبينر في الزرار بيبيّن التحميل، فمش محتاجين سناك بار نصي
           await _shorebirdUpdater.update();
-          _showSnackBar("تم تحميل التحديث! يرجى إغلاق التطبيق وفتحه مجدداً");
+          _showSnackBar("تم تحميل التحديث! أغلق التطبيق وافتحه تاني هيتم تطبيقه");
           break;
         case UpdateStatus.restartRequired:
           _showSnackBar("يوجد تحديث محمل بالفعل، يرجى إعادة تشغيل التطبيق");
@@ -90,20 +92,31 @@ class _SettingsTabState extends State<SettingsTab> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                locale.mode,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              Switch(
-                value: provider.isDarkMode(),
-                onChanged: (isDark) {
-                  provider.changeTheme(isDark ? ThemeMode.dark : ThemeMode.light);
-                },
-              ),
-            ],
+          ThemeSwitcher.withTheme(
+            builder: (context, switcher, _) {
+              final isDark = provider.isDarkMode();
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    locale.mode,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  Switch(
+                    value: isDark,
+                    onChanged: (_) {
+                      final target = isDark ? ThemeMode.light : ThemeMode.dark;
+                      // 1) نبني حالة الـ provider لباقي التطبيق (اللي بيقرأ isDarkMode)
+                      provider.changeTheme(target);
+                      // 2) مشغل الحركة في الـ ThemeProvider
+                      switcher.changeTheme(
+                        theme: isDark ? Apptheme.lightTheme : Apptheme.darkTheme,
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
           ),
           const Spacer(),
           if (_isCheckingForUpdate)
