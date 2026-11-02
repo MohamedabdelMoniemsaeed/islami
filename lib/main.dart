@@ -15,6 +15,7 @@ import 'package:islami/Screen/HomeTab/duas_screen.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/dezeen/theme.dart';
 import 'package:islami/dezeen/connectivity_service.dart';
+import 'package:islami/services/api_service.dart';
 import 'package:islami/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -37,6 +38,11 @@ void main() async {
 
   // 2. تهيئة الإشعارات
   await NotificationService().init();
+
+  // 3. جدولة إعلانات اليوم من أول فتح (مش بس لما يفتح توقيت الصلاة)
+  ApiService().getPrayerTimes().then((times) {
+    NotificationService().scheduleAllPrayers(times);
+  }).catchError((_) {});
 
   runApp(
     ChangeNotifierProvider(
