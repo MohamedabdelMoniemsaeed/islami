@@ -49,5 +49,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- مرجع ثابت ليحمي صوت الأذان من حذفه R8 في البناء release (resource shrinking) -->
+        <meta-data
+            android:name="prayer_adhan_sound"
+            android:resource="@raw/azan" />
     </application>
 </manifest>
