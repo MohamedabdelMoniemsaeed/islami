@@ -12,7 +12,7 @@ import 'package:islami/services/cache_service.dart';
 
 class ApiService {
   static const String _prayerBaseUrl = 'https://quran.yousefheiba.com/api/getPrayerTimes';
-  static const String _quranBaseUrl = 'http://api.alquran.cloud/v1';
+  static const String _quranBaseUrl = 'https://api.alquran.cloud/v1';
   static const String _hadithBaseUrl = 'https://hadis-api-id.vercel.app/hadith';
   static const String _radioUrl = 'https://quran.yousefheiba.com/api/radio';
   static const String _tafsirBaseUrl = 'https://quranenc.com/api/v1/translation/sura/arabic_moyassar';

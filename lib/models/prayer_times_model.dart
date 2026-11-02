@@ -26,9 +26,15 @@ class PrayerTimes {
   });
 
   factory PrayerTimes.fromJson(Map<String, dynamic> json) {
-    final prayerTimes = json['prayer_times'];
-    final date = json['date'];
-    final hijri = date['date_hijri'];
+    // json.decode يرجع Map<String, dynamic> بالداخل، بس كنّا آمنين لو
+    // وصلنا أي نوع Map عشان ما يعملناش cast exception.
+    Map<String, dynamic> pick(dynamic value) =>
+        value is Map ? value.cast<String, dynamic>() : {};
+
+    final prayerTimes = pick(json['prayer_times']);
+    final date = pick(json['date']);
+    final hijri = pick(date['date_hijri']);
+    final weekday = pick(hijri['weekday']);
 
     return PrayerTimes(
       fajr: prayerTimes['Fajr'] ?? "",
@@ -39,7 +45,7 @@ class PrayerTimes {
       isha: prayerTimes['Isha'] ?? "",
       dateEn: date['date_en'] ?? "",
       dateHijri: hijri['date'] ?? "",
-      dayAr: hijri['weekday']['ar'] ?? "",
+      dayAr: weekday['ar'] ?? "",
       country: json['country'] ?? "",
       region: json['region'] ?? "",
     );

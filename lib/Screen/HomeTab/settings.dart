@@ -7,6 +7,8 @@ import '../../dezeen/shiar.dart';
 import '../../dezeen/theme.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:islami/services/api_service.dart';
+import 'package:islami/services/notification_service.dart';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -17,13 +19,19 @@ class SettingsTab extends StatefulWidget {
 
 class _SettingsTabState extends State<SettingsTab> {
   final _shorebirdUpdater = ShorebirdUpdater();
+  final ApiService _apiService = ApiService();
   bool _isCheckingForUpdate = false;
   String _version = "";
+
+  // إعدادات الأذان (محمّلة من SharedPreferences)
+  bool _adhanMaster = true;
+  Set<String>? _adhanPrayers;
 
   @override
   void initState() {
     super.initState();
     _loadVersionInfo();
+    _loadAdhanSettings();
   }
 
   Future<void> _loadVersionInfo() async {
@@ -81,6 +89,69 @@ class _SettingsTabState extends State<SettingsTab> {
     );
   }
 
+  // ===== إعدادات الأذان =====
+
+  Future<void> _loadAdhanSettings() async {
+    final service = NotificationService();
+    final master = await service.isMasterAdhanEnabled();
+    final states = await service.getPrayerStates();
+    if (!mounted) return;
+    setState(() {
+      _adhanMaster = master;
+      _adhanPrayers =
+          states.entries.where((e) => e.value).map((e) => e.key).toSet();
+    });
+  }
+
+  Future<void> _onMasterAdhanToggle(bool value) async {
+    setState(() => _adhanMaster = value);
+    await NotificationService().setMasterAdhanEnabled(value);
+    if (value) {
+      await _scheduleEnabledAdhan("تم تفعيل الأذان");
+    } else {
+      await NotificationService().cancelAll();
+      _showSnackBar("تم إيقاف الأذان");
+    }
+  }
+
+  Future<void> _onPrayerToggle(String prayer, String name, bool value) async {
+    final states = Set<String>.from(_adhanPrayers ?? {});
+    if (value) {
+      states.add(prayer);
+    } else {
+      states.remove(prayer);
+    }
+    setState(() => _adhanPrayers = states);
+    await NotificationService().setPrayerEnabled(prayer, value);
+    if (value) {
+      await _scheduleEnabledAdhan("تم تفعيل أذان $name");
+    } else {
+      await NotificationService().cancelPrayerNotification(prayer);
+      _showSnackBar("تم إيقاف أذان $name");
+    }
+  }
+
+  /// إعادة جدولة صلاوات اليوم حسب الإعدادات الحالية
+  Future<void> _scheduleEnabledAdhan(String successMessage) async {
+    try {
+      final times = await _apiService.getPrayerTimes();
+      await NotificationService().scheduleEnabledPrayers(times);
+      _showSnackBar(successMessage);
+    } catch (_) {
+      _showSnackBar("تم الحفظ — الأذان بيتفعّل أول ما تكون بيانات المواقيت متاحة");
+    }
+  }
+
+  Widget _buildAdhanSwitchRow(String label, bool value, ValueChanged<bool>? onChanged) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodyLarge),
+        Switch(value: value, onChanged: onChanged),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
@@ -118,6 +189,50 @@ class _SettingsTabState extends State<SettingsTab> {
               );
             },
           ),
+          // ===== قسم إعدادات الأذان =====
+          const SizedBox(height: 30),
+          const Text(
+            "اذان الصلاة",
+            style: TextStyle(
+              color: AppColors.yellow,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "صوت الاذان",
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const Text(
+                "الافتراضي",
+                style: TextStyle(
+                  color: Colors.lightBlue,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _buildAdhanSwitchRow("تشغيل الاذان", _adhanMaster, _onMasterAdhanToggle),
+          const SizedBox(height: 10),
+          for (final prayer in NotificationService.prayerNames.keys)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _buildAdhanSwitchRow(
+                NotificationService.prayerNames[prayer]!,
+                _adhanMaster && (_adhanPrayers?.contains(prayer) ?? true),
+                _adhanMaster
+                    ? (v) => _onPrayerToggle(
+                          prayer, NotificationService.prayerNames[prayer]!, v,
+                        )
+                    : null,
+              ),
+            ),
           const Spacer(),
           if (_isCheckingForUpdate)
             const Center(child: CircularProgressIndicator())

@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initPrayerNotifications() async {
     try {
       final times = await ApiService().getPrayerTimes();
-      await NotificationService().scheduleAllPrayers(times);
+      await NotificationService().scheduleEnabledPrayers(times);
     } catch (e) {
       debugPrint("Error initializing prayer notifications: $e");
     }

@@ -31,7 +31,7 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
 
   void _scheduleNotifications(PrayerTimes times) {
     if (_notificationsScheduled) return;
-    _notificationService.scheduleAllPrayers(times);
+    _notificationService.scheduleEnabledPrayers(times);
     _notificationsScheduled = true;
   }
 

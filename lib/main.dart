@@ -39,9 +39,9 @@ void main() async {
   // 2. تهيئة الإشعارات
   await NotificationService().init();
 
-  // 3. جدولة إعلانات اليوم من أول فتح (مش بس لما يفتح توقيت الصلاة)
+  // 3. جدولة الأذان لليوم حسب إعدادات المستخدم (مش بس لما يفتح توقيت الصلاة)
   ApiService().getPrayerTimes().then((times) {
-    NotificationService().scheduleAllPrayers(times);
+    NotificationService().scheduleEnabledPrayers(times);
   }).catchError((_) {});
 
   runApp(
