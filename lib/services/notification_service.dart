@@ -31,6 +31,29 @@ class NotificationService {
   };
   static const String adhanKeyPrefix = 'adhan_';
   static const String adhanMasterKey = 'adhan_master';
+  static const String adhanSoundKey = 'adhan_sound';
+
+  /// أصوات الأذان المتاحة: (اسم الـ resource في res/raw، التسمية المعروضة)
+  static const List<(String, String)> adhanSounds = [
+    ('azan', 'الأذان الافتراضي'),
+    ('adhan_bell', 'جرس قصير'),
+    ('adhan_chime', 'نغمات متصاعدة'),
+  ];
+  static const String defaultAdhanSound = 'azan';
+
+  /// اسم الـ raw resource للصوت المختار (بالافتراض الأول الافتراضي)
+  Future<String> getAdhanSound() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(adhanSoundKey) ?? defaultAdhanSound;
+  }
+
+  Future<void> setAdhanSound(String soundId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(adhanSoundKey, soundId);
+  }
+
+  static String adhanSoundLabel(String soundId) =>
+      adhanSounds.firstWhere((s) => s.$1 == soundId, orElse: () => adhanSounds.first).$2;
 
   Future<void> init() async {
     tz.initializeTimeZones();
@@ -126,17 +149,19 @@ class NotificationService {
     final now = DateTime.now();
     if (scheduledTime.isBefore(now)) return;
 
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    // الصوت بيتحدد من اختيار المستخدم (الافتراضي "azan")
+    final soundId = await getAdhanSound();
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'prayer_channel',
       'مواقيت الصلاة',
       channelDescription: 'تنبيهات بمواعيد الصلوات الخمس',
       importance: Importance.max,
       priority: Priority.high,
-      sound: RawResourceAndroidNotificationSound('azan'),
+      sound: RawResourceAndroidNotificationSound(soundId),
       playSound: true,
     );
 
-    const NotificationDetails notificationDetails =
+    final NotificationDetails notificationDetails =
         NotificationDetails(android: androidDetails);
 
     await _notificationsPlugin.zonedSchedule(

@@ -26,6 +26,7 @@ class _SettingsTabState extends State<SettingsTab> {
   // إعدادات الأذان (محمّلة من SharedPreferences)
   bool _adhanMaster = true;
   Set<String>? _adhanPrayers;
+  String _adhanSound = NotificationService.defaultAdhanSound;
 
   @override
   void initState() {
@@ -95,11 +96,13 @@ class _SettingsTabState extends State<SettingsTab> {
     final service = NotificationService();
     final master = await service.isMasterAdhanEnabled();
     final states = await service.getPrayerStates();
+    final sound = await service.getAdhanSound();
     if (!mounted) return;
     setState(() {
       _adhanMaster = master;
       _adhanPrayers =
           states.entries.where((e) => e.value).map((e) => e.key).toSet();
+      _adhanSound = sound;
     });
   }
 
@@ -140,6 +143,15 @@ class _SettingsTabState extends State<SettingsTab> {
     } catch (_) {
       _showSnackBar("تم الحفظ — الأذان بيتفعّل أول ما تكون بيانات المواقيت متاحة");
     }
+  }
+
+  /// تغيير صوت المؤذن + إعادة جدولة اليوم عشان الإشعارات تشتغل بالصوت الجديد
+  Future<void> _onAdhanSoundChanged(String? soundId) async {
+    if (soundId == null || soundId == _adhanSound) return;
+    setState(() => _adhanSound = soundId);
+    await NotificationService().setAdhanSound(soundId);
+    await _scheduleEnabledAdhan(
+        "تم تغيير صوت الأذان إلى ${NotificationService.adhanSoundLabel(soundId)}");
   }
 
   Widget _buildAdhanSwitchRow(String label, bool value, ValueChanged<bool>? onChanged) {
@@ -207,13 +219,17 @@ class _SettingsTabState extends State<SettingsTab> {
                 "صوت الاذان",
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
-              const Text(
-                "الافتراضي",
-                style: TextStyle(
-                  color: Colors.lightBlue,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+              DropdownButton<String>(
+                value: _adhanSound,
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final s in NotificationService.adhanSounds)
+                    DropdownMenuItem(
+                      value: s.$1,
+                      child: Text(s.$2, style: const TextStyle(fontSize: 16)),
+                    ),
+                ],
+                onChanged: _onAdhanSoundChanged,
               ),
             ],
           ),
