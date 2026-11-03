@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 400" font-family="Segoe UI, Tahoma, Arial" direction="ltr">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a9a5b"/>
+    </marker>
+  </defs>
+
+  <rect width="940" height="400" fill="#f7f8f2"/>
+
+  <!-- splash -->
+  <rect x="20" y="150" width="140" height="60" rx="12" fill="#fff" stroke="#8a9a5b" stroke-width="2"/>
+  <text x="90" y="185" text-anchor="middle" font-size="15" fill="#2d3319" font-weight="bold">شاشة الإقلاع</text>
+
+  <line x1="160" y1="180" x2="215" y2="180" stroke="#8a9a5b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- home -->
+  <rect x="220" y="130" width="180" height="100" rx="12" fill="#e8ecdb" stroke="#8a9a5b" stroke-width="2"/>
+  <text x="310" y="160" text-anchor="middle" font-size="15" font-weight="bold" fill="#2d3319">home.dart</text>
+  <text x="310" y="185" text-anchor="middle" font-size="13" fill="#4b5320">IndexedStack + شريط التنقل</text>
+  <text x="310" y="207" text-anchor="middle" font-size="12" fill="#4b5320">كل التوبات مشغّلة (مش navigation)</text>
+
+  <!-- tabs -->
+  <g font-size="14" text-anchor="middle">
+    <rect x="480" y="20" width="200" height="54" rx="10" fill="#fff" stroke="#8a9a5b" stroke-width="1.6"/>
+    <text x="580" y="43" font-weight="bold" fill="#2d3319">القرآن</text>
+    <text x="580" y="61" font-size="12" fill="#4b5320">quran.dart · surah_index · علامة bookmark</text>
+
+    <rect x="480" y="92" width="200" height="54" rx="10" fill="#fff" stroke="#d4a017" stroke-width="2"/>
+    <text x="580" y="115" font-weight="bold" fill="#2d3319">توقيت الصلاة ★</text>
+    <text x="580" y="133" font-size="12" fill="#4b5320">prayer_times.dart · جدولة الأذان</text>
+
+    <rect x="480" y="164" width="200" height="54" rx="10" fill="#fff" stroke="#8a9a5b" stroke-width="1.6"/>
+    <text x="580" y="187" font-weight="bold" fill="#2d3319">أذكار وأدعية</text>
+    <text x="580" y="205" font-size="12" fill="#4b5320">azkar.dart · duas.dart · ليلة القدر</text>
+
+    <rect x="480" y="236" width="200" height="54" rx="10" fill="#fff" stroke="#8a9a5b" stroke-width="1.6"/>
+    <text x="580" y="259" font-weight="bold" fill="#2d3319">إذاعات وتلاوات</text>
+    <text x="580" y="277" font-size="12" fill="#4b5320">radio.dart · reciter_audio (just_audio)</text>
+
+    <rect x="480" y="308" width="200" height="54" rx="10" fill="#fff" stroke="#8a9a5b" stroke-width="1.6"/>
+    <text x="580" y="331" font-weight="bold" fill="#2d3319">الإعدادات</text>
+    <text x="580" y="349" font-size="12" fill="#4b5320">settings.dart · أذان · ثيم · تحديث</text>
+  </g>
+
+  <!-- detail column: tafsir + settings adhan -->
+  <g font-size="13" text-anchor="middle">
+    <rect x="740" y="140" width="180" height="54" rx="10" fill="#eef1e6" stroke="#8a9a5b" stroke-width="1.4"/>
+    <text x="830" y="162" fill="#2d3319">تفسير ميسّر (114 سورة)</text>
+    <text x="830" y="180" font-size="12" fill="#4b5320">tafsir_index · tafsirs · tafsir_details</text>
+    <rect x="740" y="300" width="180" height="54" rx="10" fill="#fdf6e3" stroke="#d4a017" stroke-width="1.4"/>
+    <text x="830" y="322" fill="#2d3319">إعدادات الأذان</text>
+    <text x="830" y="340" font-size="12" fill="#4b5320">رئيسي + 5 سويتشات للصلاة</text>
+  </g>
+
+  <!-- connectors -->
+  <g stroke="#8a9a5b" stroke-width="1.4" fill="none" marker-end="url(#arrow)">
+    <line x1="400" y1="170" x2="476" y2="47"/>
+    <line x1="400" y1="180" x2="476" y2="119"/>
+    <line x1="400" y1="190" x2="476" y2="191"/>
+    <line x1="400" y1="200" x2="476" y2="263"/>
+    <line x1="400" y1="212" x2="476" y2="335"/>
+    <line x1="680" y1="180" x2="736" y2="167"/>
+    <line x1="680" y1="335" x2="736" y2="327"/>
+  </g>
+</svg>

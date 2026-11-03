@@ -15,6 +15,15 @@ class LaylatAlQadrScreen extends StatefulWidget {
 class _LaylatAlQadrScreenState extends State<LaylatAlQadrScreen> {
   final ApiService _apiService = ApiService();
 
+  // الطلب اتولد مرة واحدة في initState (مش كل rebuild من Provider)
+  late final Future<Map<String, dynamic>> _laylat;
+
+  @override
+  void initState() {
+    super.initState();
+    _laylat = _apiService.getLaylatAlQadr();
+  }
+
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
@@ -25,7 +34,7 @@ class _LaylatAlQadrScreenState extends State<LaylatAlQadrScreen> {
         centerTitle: true,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
-        future: _apiService.getLaylatAlQadr(),
+        future: _laylat,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: AppColors.yellow));

@@ -18,7 +18,18 @@ class PrayerTimesTab extends StatefulWidget {
 class _PrayerTimesTabState extends State<PrayerTimesTab> {
   final ApiService _apiService = ApiService();
   final NotificationService _notificationService = NotificationService();
-  bool _notificationsScheduled = false;
+
+  // الـ Future اتولد مرة واحدة على مستوى الـ State (مش كل rebuild)
+  late final Future<PrayerTimes> _times;
+
+  @override
+  void initState() {
+    super.initState();
+    _times = _apiService.getPrayerTimes().then((times) {
+      _notificationService.scheduleEnabledPrayers(times);
+      return times;
+    });
+  }
 
   String _formatTime(String time) {
     try {
@@ -29,19 +40,13 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
     }
   }
 
-  void _scheduleNotifications(PrayerTimes times) {
-    if (_notificationsScheduled) return;
-    _notificationService.scheduleEnabledPrayers(times);
-    _notificationsScheduled = true;
-  }
-
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
     var locale = AppLocalizations.of(context)!;
 
     return FutureBuilder<PrayerTimes>(
-      future: _apiService.getPrayerTimes(),
+      future: _times,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: AppColors.yellow));
@@ -57,8 +62,6 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
         }
 
         final times = snapshot.data!;
-        // جدولة الإشعارات بمجرد تحميل البيانات
-        _scheduleNotifications(times);
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20),

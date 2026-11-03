@@ -53,6 +53,8 @@ class TafasirTab extends StatelessWidget {
 
   void _showTafsirDialog(BuildContext context, int suraNumber, String suraName, bool isDark) {
     final ApiService apiService = ApiService();
+    // أنشئ الطلب مرة واحدة برّا builder عشان لو اتبني تاني ما يعيدش الجلب
+    final tafsirFuture = apiService.getTafsir(suraNumber);
 
     showModalBottomSheet(
       context: context,
@@ -74,7 +76,7 @@ class TafasirTab extends StatelessWidget {
               const Divider(color: AppColors.yellow),
               Expanded(
                 child: FutureBuilder<TafsirResponse>(
-                  future: apiService.getTafsir(suraNumber),
+                  future: tafsirFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator(color: AppColors.yellow));

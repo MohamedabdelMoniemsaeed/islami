@@ -58,15 +58,19 @@ void main() {
       expect(surah.ayahs.single.numberInSurah, 1);
     });
 
-    test('corrupt cache JSON propagates a FormatException (crash surface)', () async {
-      // يوثّق السلوك الحالي: الكاش التالف بيبقى بيحط التطبيق في استثناء مش رسالة واضحة
+    test('corrupt cache is evicted and a clear error is thrown', () async {
+      // الكاش التالف بيتقشط (removeData) وبيترمي رسالة عربية واضحة مش استثناء غامض
       SharedPreferences.setMockInitialValues({
         CacheService.keyPrayerTimes: '{"broken":',
       });
-      await expectLater(
-        ApiService().getPrayerTimes(),
-        throwsA(isA<FormatException>()),
-      );
+      Object? error;
+      try {
+        await ApiService().getPrayerTimes();
+      } catch (e) {
+        error = e;
+      }
+      expect(error, isA<Exception>());
+      expect(error!.toString(), contains('لا يوجد اتصال'));
     });
 
     test('no cache and no network throws a clear error', () async {

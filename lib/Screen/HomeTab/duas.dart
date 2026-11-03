@@ -5,13 +5,28 @@ import 'package:islami/models/duas_model.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:provider/provider.dart';
 
-class DuasTab extends StatelessWidget {
+class DuasTab extends StatefulWidget {
   const DuasTab({super.key});
+
+  @override
+  State<DuasTab> createState() => _DuasTabState();
+}
+
+class _DuasTabState extends State<DuasTab> {
+  final ApiService _apiService = ApiService();
+
+  // الطلب اتولد مرة واحدة في initState (مش كل rebuild من Provider)
+  late final Future<DuasResponse> _duas;
+
+  @override
+  void initState() {
+    super.initState();
+    _duas = _apiService.getDuas();
+  }
 
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
-    final ApiService apiService = ApiService();
 
     return Column(
       children: [
@@ -27,7 +42,7 @@ class DuasTab extends StatelessWidget {
         const Divider(color: AppColors.yellow, thickness: 2),
         Expanded(
           child: FutureBuilder<DuasResponse>(
-            future: apiService.getDuas(),
+            future: _duas,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(

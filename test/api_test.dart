@@ -4,7 +4,6 @@ import 'package:islami/services/api_service.dart';
 import 'package:islami/models/prayer_times_model.dart';
 import 'package:islami/models/hadith_model.dart';
 import 'package:islami/models/surah_api_model.dart';
-import 'package:islami/models/radio_model.dart';
 import 'package:islami/models/tafsir_model.dart';
 import 'package:flutter/foundation.dart';
 
@@ -36,15 +35,6 @@ void main() {
       expect(hadithData.items, isNotEmpty);
       debugPrint('✓ Hadith API OK: Found ${hadithData.items.length} hadiths');
     });
-
-    // shortcut: /api/radio هو بث صوتي مباشر ماسودق أبدًا، فـ http.get مش هيتكمل في التوست.
-    // لما الخادم يقدم JSON حقيقي للقائمة، شغّل التوست تاني من غير skip.
-    test('Fetch Radios successfully', () async {
-      final radioData = await apiService.getRadios();
-      expect(radioData, isA<RadioResponse>());
-      expect(radioData.radios, isNotEmpty);
-      debugPrint('✓ Radio API OK: Found ${radioData.radios.length} radio stations');
-    }, skip: true);
 
     test('Fetch Tafsir for Surah 114 successfully', () async {
       final tafsirData = await apiService.getTafsir(114);

@@ -7,7 +7,6 @@ class CacheService {
 
   // مفاتيح التخزين
   static const String keyPrayerTimes = 'prayer_times_cache';
-  static const String keyRadios = 'radios_cache';
   static const String keyAzkar = 'azkar_cache';
   static const String keyDuas = 'duas_cache';
   static const String keySurahsList = 'surahs_list_cache';
@@ -23,6 +22,11 @@ class CacheService {
   Future<String?> getData(String key) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(key);
+  }
+
+  Future<void> removeData(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
   }
 
   // وظائف خاصة للسور والتفاسير لأنها تعتمد على الرقم

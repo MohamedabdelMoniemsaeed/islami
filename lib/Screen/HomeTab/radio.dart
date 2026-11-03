@@ -54,9 +54,14 @@ class _RadioTabState extends State<RadioTab> {
   Future<void> _loadFavorites() async {
     final data = await _cacheService.getData(CacheService.keyRadioFavorites);
     if (data == null) return;
-    final ids = json.decode(data);
-    if (ids is List && mounted) {
-      setState(() => _favoriteIds = ids.whereType<int>().toSet());
+    try {
+      final ids = json.decode(data);
+      if (ids is List && mounted) {
+        setState(() => _favoriteIds = ids.whereType<int>().toSet());
+      }
+    } catch (_) {
+      // بيانات تالفة في الكاش: إعادة تعيين المفضلة
+      if (mounted) setState(() => _favoriteIds = {});
     }
   }
 
@@ -79,6 +84,10 @@ class _RadioTabState extends State<RadioTab> {
   }
 
   Future<void> _playPause(RadioItem radio) async {
+    if (!radio.url.startsWith('https://')) {
+      _showError("رابط الإذاعة غير صالح");
+      return;
+    }
     try {
       if (_audioPlayer.playing && _audioPlayer.audioSource != null) {
         final currentSource = _audioPlayer.audioSource;

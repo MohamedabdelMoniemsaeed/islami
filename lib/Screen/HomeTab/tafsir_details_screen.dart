@@ -24,11 +24,22 @@ class TafsirDetailsScreen extends StatefulWidget {
 class _TafsirDetailsScreenState extends State<TafsirDetailsScreen> {
   final ApiService _apiService = ApiService();
 
+  // الطلب اتولد مرة واحدة برّا build (السورة من args لو موجودة، وإلا من الـ widget)
+  late final Future<TafsirResponse> _tafsir;
+
+  @override
+  void initState() {
+    super.initState();
+    final dynamic args = ModalRoute.of(context)?.settings.arguments;
+    final int surahNumber =
+        args != null ? (args as Map)['number'] as int : widget.surahNumber;
+    _tafsir = _apiService.getTafsir(surahNumber);
+  }
+
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
     final dynamic args = ModalRoute.of(context)!.settings.arguments;
-    final int surahNumber = args != null ? (args as Map)['number'] : widget.surahNumber;
     final String surahName = args != null ? (args as Map)['name'] : widget.surahName;
 
     return Container(
@@ -51,7 +62,7 @@ class _TafsirDetailsScreenState extends State<TafsirDetailsScreen> {
           iconTheme: IconThemeData(color: provider.isDarkMode() ? AppColors.blackDark : Colors.black),
         ),
         body: FutureBuilder<TafsirResponse>(
-          future: _apiService.getTafsir(surahNumber),
+          future: _tafsir,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator(color: AppColors.yellow));

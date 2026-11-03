@@ -52,8 +52,16 @@ class _ReciterAudioScreenState extends State<ReciterAudioScreen> {
 
   Future<void> _playTrack(int index) async {
     final track = _reciterData['audio_urls'][index];
-    final String url = track['audio_url'];
-    final String title = track['surah_name_ar'];
+    final String? url = track?['audio_url']?.toString();
+    if (url == null || !url.startsWith('https://')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("رابط الصوت غير صالح")),
+        );
+      }
+      return;
+    }
+    final String title = track?['surah_name_ar']?.toString() ?? "";
 
     try {
       if (_audioPlayer.playing && _currentPlayingIndex == index) {

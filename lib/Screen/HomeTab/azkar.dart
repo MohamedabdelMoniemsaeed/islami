@@ -6,13 +6,28 @@ import 'package:islami/models/azkar_model.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:provider/provider.dart';
 
-class AzkarTab extends StatelessWidget {
+class AzkarTab extends StatefulWidget {
   const AzkarTab({super.key});
+
+  @override
+  State<AzkarTab> createState() => _AzkarTabState();
+}
+
+class _AzkarTabState extends State<AzkarTab> {
+  final ApiService _apiService = ApiService();
+
+  // الطلب اتولد مرة واحدة في initState (مش كل rebuild من Provider)
+  late final Future<AzkarResponse> _azkar;
+
+  @override
+  void initState() {
+    super.initState();
+    _azkar = _apiService.getAzkar();
+  }
 
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
-    final ApiService apiService = ApiService();
 
     return Column(
       children: [
@@ -27,7 +42,7 @@ class AzkarTab extends StatelessWidget {
         const Divider(color: AppColors.yellow, thickness: 2),
         Expanded(
           child: FutureBuilder<AzkarResponse>(
-            future: apiService.getAzkar(),
+            future: _azkar,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator(color: AppColors.yellow));
