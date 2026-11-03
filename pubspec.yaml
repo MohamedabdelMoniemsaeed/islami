@@ -50,6 +50,11 @@ dev_dependencies:
   # أداة CLI وقت البناء (مش مستخدمة جوه الكود فـ dev مش runtime)
   flutter_native_splash: ^2.4.1
 
+# 2.5.1 آخر إصدار من غير ما يعتمد على objective_c (build hooks اللي بتكسر
+# build على Windows لو المسار فيه مسافة، زي C:\Users\AI Agent)
+dependency_overrides:
+  path_provider_foundation: 2.5.1
+
 flutter_launcher_icons:
   android: true
   ios: true
