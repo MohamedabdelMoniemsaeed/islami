@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:islami/models/prayer_times_model.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -41,10 +42,22 @@ class NotificationService {
   ];
   static const String defaultAdhanSound = 'azan';
 
-  /// اسم الـ raw resource للصوت المختار (بالافتراض الأول الافتراضي)
+  /// اسم الـ raw resource للصوت المختار (بيتحقق إنه متاح في النسخة المركّبة)
   Future<String> getAdhanSound() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(adhanSoundKey) ?? defaultAdhanSound;
+    final stored = prefs.getString(adhanSoundKey) ?? defaultAdhanSound;
+    final available = await availableAdhanSounds();
+    return available.any((s) => s.$1 == stored) ? stored : defaultAdhanSound;
+  }
+
+  /// الأصوات المتاحة على النسخة الحالية: ملفات res/raw الجديدة
+  /// (الجرس والنغمات) موجودة من build 18 وبعدها؛ في النسخة القديمة
+  /// اللي عند المستخدمين دلوقتي (1.0.3+17) مفيش غير الأذان الافتراضي.
+  static Future<List<(String, String)>> availableAdhanSounds() async {
+    final info = await PackageInfo.fromPlatform();
+    final buildNumber = int.tryParse(info.buildNumber) ?? 0;
+    if (buildNumber >= 18) return adhanSounds;
+    return [(defaultAdhanSound, 'الأذان الافتراضي')];
   }
 
   Future<void> setAdhanSound(String soundId) async {

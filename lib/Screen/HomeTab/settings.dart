@@ -27,6 +27,9 @@ class _SettingsTabState extends State<SettingsTab> {
   bool _adhanMaster = true;
   Set<String>? _adhanPrayers;
   String _adhanSound = NotificationService.defaultAdhanSound;
+  List<(String, String)> _adhanSoundOptions = [
+    (NotificationService.defaultAdhanSound, 'الأذان الافتراضي'),
+  ];
 
   @override
   void initState() {
@@ -94,11 +97,13 @@ class _SettingsTabState extends State<SettingsTab> {
 
   Future<void> _loadAdhanSettings() async {
     final service = NotificationService();
+    final options = await NotificationService.availableAdhanSounds();
     final master = await service.isMasterAdhanEnabled();
     final states = await service.getPrayerStates();
     final sound = await service.getAdhanSound();
     if (!mounted) return;
     setState(() {
+      _adhanSoundOptions = options;
       _adhanMaster = master;
       _adhanPrayers =
           states.entries.where((e) => e.value).map((e) => e.key).toSet();
@@ -223,7 +228,7 @@ class _SettingsTabState extends State<SettingsTab> {
                 value: _adhanSound,
                 underline: const SizedBox.shrink(),
                 items: [
-                  for (final s in NotificationService.adhanSounds)
+                  for (final s in _adhanSoundOptions)
                     DropdownMenuItem(
                       value: s.$1,
                       child: Text(s.$2, style: const TextStyle(fontSize: 16)),

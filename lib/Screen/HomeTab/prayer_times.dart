@@ -26,6 +26,9 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
   // بيانات الأذان (محمّلة من SharedPreferences)
   bool _adhanMaster = true;
   String _adhanSound = NotificationService.defaultAdhanSound;
+  List<(String, String)> _adhanSoundOptions = [
+    (NotificationService.defaultAdhanSound, 'الأذان الافتراضي'),
+  ];
 
   // عدّاد تنازلي للصلاة القادمة
   Timer? _countdownTimer;
@@ -52,10 +55,12 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
   }
 
   Future<void> _loadAdhanSettings() async {
+    final options = await NotificationService.availableAdhanSounds();
     final master = await _notificationService.isMasterAdhanEnabled();
     final sound = await _notificationService.getAdhanSound();
     if (!mounted) return;
     setState(() {
+      _adhanSoundOptions = options;
       _adhanMaster = master;
       _adhanSound = sound;
     });
@@ -361,7 +366,7 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
                 underline: const SizedBox.shrink(),
                 borderRadius: BorderRadius.circular(10),
                 items: [
-                  for (final s in NotificationService.adhanSounds)
+                  for (final s in _adhanSoundOptions)
                     DropdownMenuItem(
                       value: s.$1,
                       child: Text(
