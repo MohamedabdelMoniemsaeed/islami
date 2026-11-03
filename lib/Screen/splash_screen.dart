@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:islami/Screen/home.dart';
+import 'package:islami/Screen/destinations_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   static const String routeName = "Splash";
@@ -15,7 +15,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, HomeScreen.routeName);
+      Navigator.pushReplacementNamed(context, DestinationsScreen.routeName);
     });
   }
 

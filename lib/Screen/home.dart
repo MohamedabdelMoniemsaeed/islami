@@ -23,14 +23,17 @@ import 'package:islami/dezeen/surah_pages.dart';
 class HomeScreen extends StatefulWidget {
   static const String routeName = "Home";
 
-  const HomeScreen({super.key});
+  /// تاب بيجي عليها مباشرة (من شاشة الوجهات)؛ 0–3 زي توابت البار السفلي.
+  final int startTab;
+
+  const HomeScreen({super.key, this.startTab = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int currentIndex = 0;
+  late int currentIndex = widget.startTab;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
