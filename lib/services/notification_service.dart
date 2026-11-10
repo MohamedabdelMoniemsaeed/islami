@@ -1,5 +1,4 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:islami/models/prayer_times_model.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -36,28 +35,25 @@ class NotificationService {
 
   /// أصوات الأذان المتاحة: (اسم الـ resource في res/raw، التسمية المعروضة)
   static const List<(String, String)> adhanSounds = [
-    ('azan', 'الأذان الافتراضي'),
-    ('adhan_bell', 'جرس قصير'),
-    ('adhan_chime', 'نغمات متصاعدة'),
+    ('adhan_1', 'المؤذن ١'),
+    ('adhan_2', 'المؤذن ٢'),
+    ('adhan_3', 'المؤذن ٣'),
+    ('adhan_4', 'المؤذن ٤'),
   ];
-  static const String defaultAdhanSound = 'azan';
+  static const String defaultAdhanSound = 'adhan_1';
 
-  /// اسم الـ raw resource للصوت المختار (بيتحقق إنه متاح في النسخة المركّبة)
+  /// اسم الـ raw resource للصوت المختار
   Future<String> getAdhanSound() async {
     final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString(adhanSoundKey) ?? defaultAdhanSound;
-    final available = await availableAdhanSounds();
-    return available.any((s) => s.$1 == stored) ? stored : defaultAdhanSound;
+    final stored = prefs.getString(adhanSoundKey);
+    if (stored != null && ['adhan_1', 'adhan_2', 'adhan_3', 'adhan_4'].contains(stored)) {
+      return stored;
+    }
+    return defaultAdhanSound;
   }
 
-  /// الأصوات المتاحة على النسخة الحالية: ملفات res/raw الجديدة
-  /// (الجرس والنغمات) موجودة من build 18 وبعدها؛ في النسخة القديمة
-  /// اللي عند المستخدمين دلوقتي (1.0.3+17) مفيش غير الأذان الافتراضي.
   static Future<List<(String, String)>> availableAdhanSounds() async {
-    final info = await PackageInfo.fromPlatform();
-    final buildNumber = int.tryParse(info.buildNumber) ?? 0;
-    if (buildNumber >= 18) return adhanSounds;
-    return [(defaultAdhanSound, 'الأذان الافتراضي')];
+    return adhanSounds;
   }
 
   Future<void> setAdhanSound(String soundId) async {
@@ -65,8 +61,19 @@ class NotificationService {
     await prefs.setString(adhanSoundKey, soundId);
   }
 
-  static String adhanSoundLabel(String soundId) =>
-      adhanSounds.firstWhere((s) => s.$1 == soundId, orElse: () => adhanSounds.first).$2;
+  static String adhanSoundLabel(String soundId) {
+    switch (soundId) {
+      case 'adhan_2':
+        return 'المؤذن ٢';
+      case 'adhan_3':
+        return 'المؤذن ٣';
+      case 'adhan_4':
+        return 'المؤذن ٤';
+      case 'adhan_1':
+      default:
+        return 'المؤذن ١';
+    }
+  }
 
   Future<void> init() async {
     tz.initializeTimeZones();
@@ -82,6 +89,16 @@ class NotificationService {
     const InitializationSettings initSettings =
         InitializationSettings(android: androidSettings);
     await _notificationsPlugin.initialize(initSettings);
+
+    // طلب صلاحيات الإشعارات والتنبيهات الدقيقة لنظام أندرويد 13 فما فوق
+    final androidPlugin = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    try {
+      await androidPlugin?.requestNotificationsPermission();
+      await androidPlugin?.requestExactAlarmsPermission();
+    } catch (e) {
+      debugPrint("Notification permissions request error: $e");
+    }
   }
 
   /// الزر الرئيسي للأذان (ملحق افتراضيًا)
@@ -123,11 +140,14 @@ class NotificationService {
   Future<void> cancelPrayerNotification(String prayer) async {
     final id = prayerIds[prayer];
     if (id == null) return;
-    await _notificationsPlugin.cancel(id);
+    try {
+      await _notificationsPlugin.cancel(id);
+    } catch (_) {}
   }
 
-  /// جدولة اليوم للصلاوات المخزنة بس
+  /// جدولة الصلوات المشغلة: يلغي الجداول السابقة ويعيد جدولة كل صلاة مفعّلة
   Future<void> scheduleEnabledPrayers(PrayerTimes times) async {
+    await cancelAll();
     final enabled = await getEnabledPrayers();
     final timesByPrayer = {
       'fajr': times.fajr,
@@ -145,52 +165,113 @@ class NotificationService {
   Future<void> _schedule(String prayer, String time) async {
     try {
       final today = DateFormat("yyyy-MM-dd").format(DateTime.now());
-      final DateTime scheduledTime =
-          DateFormat("yyyy-MM-dd HH:mm").parse("$today $time");
-      await schedulePrayerNotification(
-        prayerIds[prayer]!,
-        prayerNames[prayer]!,
-        scheduledTime,
-      );
+      final DateTime? scheduledTime = _parsePrayerDateTime(today, time);
+      if (scheduledTime != null) {
+        await schedulePrayerNotification(
+          prayerIds[prayer]!,
+          prayerNames[prayer]!,
+          scheduledTime,
+        );
+      }
     } catch (e) {
       debugPrint("Error scheduling $prayer: $e");
     }
   }
 
+  DateTime? _parsePrayerDateTime(String dateStr, String timeStr) {
+    if (timeStr.isEmpty) return null;
+    final cleanTime = timeStr.replaceAll(RegExp(r'\s*\([A-Za-z\s]+\)\s*'), '').trim();
+    final match = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(cleanTime);
+    if (match != null) {
+      final hour = int.parse(match.group(1)!);
+      final minute = int.parse(match.group(2)!);
+      final parts = dateStr.split('-');
+      if (parts.length == 3) {
+        try {
+          return DateTime(
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+            int.parse(parts[2]),
+            hour,
+            minute,
+          );
+        } catch (_) {}
+      }
+    }
+    return null;
+  }
+
   Future<void> schedulePrayerNotification(
       int id, String title, DateTime scheduledTime) async {
     final now = DateTime.now();
-    if (scheduledTime.isBefore(now)) return;
+    // إذا كان وقت الصلاة لليوم قد مر، تُجدول لنفس الوقت غداً
+    DateTime targetTime = scheduledTime;
+    if (targetTime.isBefore(now)) {
+      targetTime = targetTime.add(const Duration(days: 1));
+    }
 
-    // الصوت بيتحدد من اختيار المستخدم (الافتراضي "azan")
     final soundId = await getAdhanSound();
+    final soundLabel = adhanSoundLabel(soundId);
+    // تخصيص معرف القناة لكل صوت أذان ليحترم أندرويد 8+ تغيير الصوت
+    final channelId = 'prayer_channel_$soundId';
+
+    try {
+      final androidPlugin = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+      final channel = AndroidNotificationChannel(
+        channelId,
+        'أذان $soundLabel',
+        description: 'تنبيهات بمواعيد الصلوات الخمس مع صوت الأذان',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound(soundId),
+        enableVibration: true,
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+      );
+      await androidPlugin?.createNotificationChannel(channel);
+    } catch (_) {}
+
     final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'prayer_channel',
-      'مواقيت الصلاة',
-      channelDescription: 'تنبيهات بمواعيد الصلوات الخمس',
+      channelId,
+      'أذان $soundLabel',
+      channelDescription: 'تنبيهات بمواعيد الصلوات الخمس مع صوت الأذان',
       importance: Importance.max,
       priority: Priority.high,
-      sound: RawResourceAndroidNotificationSound(soundId),
       playSound: true,
+      enableVibration: true,
+      sound: RawResourceAndroidNotificationSound(soundId),
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      category: AndroidNotificationCategory.alarm,
+      fullScreenIntent: true,
+      styleInformation: BigTextStyleInformation(
+        'حان الآن موعد أذان $title',
+        contentTitle: 'موعد الصلاة',
+        summaryText: 'حان الآن موعد أذان $title',
+      ),
     );
 
     final NotificationDetails notificationDetails =
         NotificationDetails(android: androidDetails);
 
-    await _notificationsPlugin.zonedSchedule(
-      id,
-      'موعد الصلاة',
-      'حان الآن موعد $title',
-      tz.TZDateTime.from(scheduledTime, tz.local),
-      notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
+    try {
+      await _notificationsPlugin.zonedSchedule(
+        id,
+        'موعد الصلاة',
+        'حان الآن موعد أذان $title',
+        tz.TZDateTime.from(targetTime, tz.local),
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (_) {}
   }
 
   Future<void> cancelAll() async {
-    await _notificationsPlugin.cancelAll();
+    try {
+      await _notificationsPlugin.cancelAll();
+    } catch (_) {}
   }
 }
 

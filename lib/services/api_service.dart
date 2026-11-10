@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:islami/dezeen/sura_name.dart';
 import 'package:islami/models/prayer_times_model.dart';
 import 'package:islami/models/hadith_model.dart';
 import 'package:islami/models/surah_api_model.dart';
@@ -18,7 +19,7 @@ class ApiService {
   static const String _surahsListUrl = 'https://quran.yousefheiba.com/api/surahs';
   static const String _ayahsBySurahUrl = 'https://quran.yousefheiba.com/api/ayah?number=';
   static const String _laylatAlQadrUrl = 'https://quran.yousefheiba.com/api/laylatAlQadr';
-  static const String _recitersUrl = 'https://quran.yousefheiba.com/api/reciterAudio?reciter_id=';
+  static const String _minshawiCdnBase = 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/';
 
   final CacheService _cacheService = CacheService();
 
@@ -48,15 +49,23 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getReciterAudio(int reciterId) async {
-    try {
-      final response = await http.get(Uri.parse('$_recitersUrl$reciterId')).timeout(const Duration(seconds: 30));
-      if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
-      }
-      throw Exception('Server Error');
-    } catch (e) {
-      return {};
+    // الشيخ محمد صديق المنشاوي — المصحف المرتل برواية حفص عن عاصم كاملاً (114 سورة) عبر شبكة Mp3Quran الرسمية
+    final List<Map<String, dynamic>> tracks = [];
+    for (int i = 0; i < SuraName.listSuraName.length; i++) {
+      final int surahId = i + 1;
+      final String paddedId = surahId.toString().padLeft(3, '0');
+      tracks.add({
+        'surah_id': surahId.toString(),
+        'surah_name_ar': 'سورة ${SuraName.listSuraName[i]}',
+        'audio_url': '$_minshawiCdnBase$paddedId.mp3',
+      });
     }
+
+    return {
+      'reciter_id': reciterId.toString(),
+      'reciter_name': 'الشيخ محمد صديق المنشاوي',
+      'audio_urls': tracks,
+    };
   }
 
   Future<PrayerTimes> getPrayerTimes() async {

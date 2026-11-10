@@ -6,9 +6,6 @@ import 'package:islami/services/cache_service.dart';
 import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/images.dart';
 import 'package:provider/provider.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
-import 'package:audio_session/audio_session.dart';
 import 'package:islami/dezeen/shiar.dart';
 
 class RadioTab extends StatefulWidget {
@@ -19,36 +16,35 @@ class RadioTab extends StatefulWidget {
 }
 
 class _RadioTabState extends State<RadioTab> {
-  final AudioPlayer _audioPlayer = AudioPlayer();
   final CacheService _cacheService = CacheService();
   Set<int> _favoriteIds = {};
 
-  // قائمة الإذاعات الإسلامية بث مباشر (https فقط لكي تعمل على iOS/Android)
+  // قائمة الإذاعات الإسلامية بث مباشر (HTTPS ومجربة عبر شبكة Mp3Quran و Mp3Islam الرسمية)
   static const List<RadioItem> _islamicRadios = [
-    RadioItem(id: 1, name: 'إذاعة القرآن الكريم من القاهرة', url: 'https://quran.yousefheiba.com/api/radio'),
-    RadioItem(id: 2, name: 'إذاعة القرآن الكريم – القاهرة (بديل)', url: 'https://radio.xecod.com/station/quran-cairo'),
-    RadioItem(id: 3, name: 'إذاعة القرآن الكريم – الشارقة', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/icecast.audio'),
-    RadioItem(id: 4, name: 'إذاعة القرآن الكريم – البحرين', url: 'https://5c7b683162943.streamlock.net/live/ngrp:radio-106-1_all/playlist.m3u8'),
-    RadioItem(id: 5, name: 'إذاعة القرآن الكريم – عُمَان', url: 'https://partwota.cdn.mgmlcdn.com/quranrdoorg/quranrdo.stream_aac/chunklist.m3u8'),
-    RadioItem(id: 6, name: 'إذاعة القرآن الكريم – الأردن', url: 'https://jrtv-live.ercdn.net/jrradio/quranradio.m3u8'),
-    RadioItem(id: 7, name: 'راديو القرآن – مشاري راشد العفاسي', url: 'https://radio.mp3islam.com/listen/mishary/radio.mp3'),
-    RadioItem(id: 8, name: 'راديو القرآن – عبد الباسط عبد الصمد', url: 'https://radio.mp3islam.com/listen/abdulbasit/radio.mp3'),
+    RadioItem(id: 1, name: 'إذاعة القرآن الكريم من القاهرة', url: 'https://stream.radiojar.com/8s5u5tpdtwzuv'),
+    RadioItem(id: 2, name: 'راديو القرآن – محمد صديق المنشاوي', url: 'https://qurango.net/radio/mohammed_siddiq_alminshawi'),
+    RadioItem(id: 3, name: 'إذاعة القرآن الكريم – مختارات تلاوات', url: 'https://qurango.net/radio/mix'),
+    RadioItem(id: 4, name: 'إذاعة تراتيل قصار السور', url: 'https://qurango.net/radio/tarateel'),
+    RadioItem(id: 5, name: 'راديو القرآن – عبد الباسط عبد الصمد (المجود)', url: 'https://qurango.net/radio/abdulbasit_abdulsamad_mojawwad'),
+    RadioItem(id: 6, name: 'راديو القرآن – محمود خليل الحصري', url: 'https://qurango.net/radio/mahmoud_khalil_alhussary'),
+    RadioItem(id: 7, name: 'راديو القرآن – محمد محمود الطبلاوي', url: 'https://qurango.net/radio/mohammad_altablaway'),
+    RadioItem(id: 8, name: 'راديو القرآن – مشاري راشد العفاسي', url: 'https://radio.mp3islam.com/listen/mishary/radio.mp3'),
     RadioItem(id: 9, name: 'راديو القرآن – سعود الشريم', url: 'https://radio.mp3islam.com/listen/alshuraim/radio.mp3'),
-    RadioItem(id: 10, name: 'إذاعة القرآن الكريم – الكويت', url: 'https://radio.mp3islam.com/listen/quran_radio/radio.mp3'),
-    RadioItem(id: 11, name: 'إذاعة القرآن الكريم – مصر', url: 'https://stream.radiojar.com/8s5u5tpdtwzuv'),
-    RadioItem(id: 12, name: 'إذاعة القرآن الكريم – مختارات (Mp3Quran)', url: 'https://qurango.net/radio/mix'),
+    RadioItem(id: 10, name: 'إذاعة القرآن الكريم – الشارقة', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/icecast.audio'),
+    RadioItem(id: 11, name: 'إذاعة القرآن الكريم – الكويت', url: 'https://radio.mp3islam.com/listen/quran_radio/radio.mp3'),
+    RadioItem(id: 12, name: 'إذاعة القرآن الكريم – البحرين', url: 'https://5c7b683162943.streamlock.net/live/ngrp:radio-106-1_all/playlist.m3u8'),
+    RadioItem(id: 13, name: 'إذاعة القرآن الكريم – عُمَان', url: 'https://partwota.cdn.mgmlcdn.com/quranrdoorg/quranrdo.stream_aac/chunklist.m3u8'),
+    RadioItem(id: 14, name: 'إذاعة القرآن الكريم – الأردن', url: 'https://jrtv-live.ercdn.net/jrradio/quranradio.m3u8'),
+    RadioItem(id: 15, name: 'إذاعة القرآن الكريم من مكة المكرمة', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/icecast.audio'),
+    RadioItem(id: 16, name: 'إذاعة القرآن الكريم من المدينة المنورة', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/radio.mp3'),
+    RadioItem(id: 17, name: 'إذاعة القرآن الكريم – تلاوات مختارة (القاهرة)', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/tilawah.mp3'),
+    RadioItem(id: 18, name: 'إذاعة القرآن الكريم – تجويد (القاهرة)', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/tajweed.mp3'),
   ];
 
   @override
   void initState() {
     super.initState();
-    _initAudioSession();
     _loadFavorites();
-  }
-
-  Future<void> _initAudioSession() async {
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.music());
   }
 
   Future<void> _loadFavorites() async {
@@ -60,7 +56,6 @@ class _RadioTabState extends State<RadioTab> {
         setState(() => _favoriteIds = ids.whereType<int>().toSet());
       }
     } catch (_) {
-      // بيانات تالفة في الكاش: إعادة تعيين المفضلة
       if (mounted) setState(() => _favoriteIds = {});
     }
   }
@@ -77,48 +72,25 @@ class _RadioTabState extends State<RadioTab> {
     await _cacheService.saveData(CacheService.keyRadioFavorites, json.encode(_favoriteIds.toList()));
   }
 
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  Future<void> _playPause(RadioItem radio) async {
+  Future<void> _playPause(RadioItem radio, AppProvider provider) async {
     if (!radio.url.startsWith('https://')) {
       _showError("رابط الإذاعة غير صالح");
       return;
     }
-    try {
-      if (_audioPlayer.playing && _audioPlayer.audioSource != null) {
-        final currentSource = _audioPlayer.audioSource;
-        if (currentSource is UriAudioSource && currentSource.uri.toString() == radio.url) {
-          await _audioPlayer.pause();
-          return;
-        }
-      }
+    final isPlayingSame = provider.isRadioPlaying && provider.currentRadioUrl == radio.url && provider.audioPlayer.playing;
 
-      _showInfo("جاري الاتصال بالبث المباشر...");
-
-      try {
-        final audioSource = AudioSource.uri(
-          Uri.parse(radio.url),
-          tag: MediaItem(
-            id: radio.id.toString(),
-            album: radio.name,
-            title: radio.name,
-            artUri: Uri.parse("https://quran.yousefheiba.com/assets/images/radio.png"),
-          ),
-        );
-        await _audioPlayer.setAudioSource(audioSource);
-      } catch (e) {
-        await _audioPlayer.setUrl(radio.url);
-      }
-
-      await _audioPlayer.play();
-    } catch (e) {
-      debugPrint("Radio Play Error: $e");
-      _showError("تعذر تشغيل الإذاعة حالياً. تأكد من اتصالك بالإنترنت.");
+    if (isPlayingSame) {
+      await provider.pauseTrack();
+      return;
     }
+
+    if (provider.audioPlayer.playing) {
+      // أي صوت آخر (تلاوة إلخ) → نوقفه ونبدأ الإذاعة
+      await provider.stopTrack();
+    }
+
+    _showInfo("جاري الاتصال بالبث المباشر...");
+    await provider.playRadio(radio.url, radio.name);
   }
 
   void _showInfo(String msg) {
@@ -153,58 +125,47 @@ class _RadioTabState extends State<RadioTab> {
 
   Widget _radioTile(RadioItem radio, AppProvider provider) {
     final isFavorite = _favoriteIds.contains(radio.id);
-    return StreamBuilder<PlayerState>(
-      stream: _audioPlayer.playerStateStream,
-      builder: (context, snapshot) {
-        final playerState = snapshot.data;
-        final isThisPlaying = playerState?.playing ?? false;
-        final isCurrent = _audioPlayer.audioSource != null &&
-                         _audioPlayer.audioSource is UriAudioSource &&
-                         (_audioPlayer.audioSource as UriAudioSource).uri.toString() == radio.url;
+    final isCurrent = provider.isRadioPlaying && provider.currentRadioUrl == radio.url;
 
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: provider.isDarkMode()
-                ? AppColors.yellowDark.withValues(alpha: 0.8)
-                : Colors.white.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(
-              color: (isCurrent && isThisPlaying) ? AppColors.yellow : Colors.transparent,
-              width: 2,
-            ),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: provider.isDarkMode()
+            ? AppColors.yellowDark.withValues(alpha: 0.8)
+            : Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: (isCurrent && provider.audioPlayer.playing) ? AppColors.yellow : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: ListTile(
+        leading: IconButton(
+          icon: Icon(
+            isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+            color: AppColors.yellow,
+            size: 30,
           ),
-          child: ListTile(
-            leading: IconButton(
-              icon: Icon(
-                isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
-                color: AppColors.yellow,
-                size: 30,
-              ),
-              onPressed: () => _toggleFavorite(radio),
-            ),
-            title: Text(
-              radio.name,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: provider.isDarkMode() ? Colors.white : Colors.black,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            trailing: IconButton(
-              icon: Icon(
-                (isCurrent && isThisPlaying) ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                color: AppColors.yellow,
-                size: 40,
-              ),
-              onPressed: () {
-                _playPause(radio);
-              },
-            ),
+          onPressed: () => _toggleFavorite(radio),
+        ),
+        title: Text(
+          radio.name,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: provider.isDarkMode() ? Colors.white : Colors.black,
           ),
-        );
-      },
+          textAlign: TextAlign.center,
+        ),
+        trailing: IconButton(
+          icon: Icon(
+            (isCurrent && provider.audioPlayer.playing) ? Icons.pause_circle_filled : Icons.play_circle_filled,
+            color: AppColors.yellow,
+            size: 40,
+          ),
+          onPressed: () => _playPause(radio, provider),
+        ),
+      ),
     );
   }
 
@@ -212,7 +173,6 @@ class _RadioTabState extends State<RadioTab> {
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
 
-    // المفضلة تظهر أول القائمة، ثم باقي الإذاعات
     final favorites = _islamicRadios.where((r) => _favoriteIds.contains(r.id)).toList();
     final others = _islamicRadios.where((r) => !_favoriteIds.contains(r.id)).toList();
 

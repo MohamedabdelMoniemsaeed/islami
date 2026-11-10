@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:islami/l10n/app_localizations.dart';
 import 'package:islami/Screen/home.dart';
@@ -24,48 +26,72 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:shorebird_code_push/shorebird_code_push.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // 0. فحص تلقائي للتحديثات في الخلفية (سيتفعّل تلقائيًا في البناء اللي بيتوزع عبر Shorebird)
-  _autoUpdate();
+    // Handle all Flutter errors
+    FlutterError.onError = (details) {
+      debugPrint("FlutterError: ${details.exception}");
+    };
 
-  // 1. تهيئة مشغل الصوت في الخلفية أولًا
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.example.islami.audio',
-    androidNotificationChannelName: 'Radio Playback',
-    androidNotificationOngoing: true,
-  );
+    // Handle platform errors
+    PlatformDispatcher.instance.onError = (error, stack) {
+      debugPrint("PlatformDispatcherError: $error");
+      return true;
+    };
 
-  // 2. تهيئة الإشعارات
-  await NotificationService().init();
+    try {
+      // 1. Background Audio Init
+      await JustAudioBackground.init(
+        androidNotificationChannelId: 'com.example.islami.audio',
+        androidNotificationChannelName: 'مشغل الصوت',
+        androidNotificationOngoing: true,
+        androidResumeOnClick: true,
+        notificationColor: const Color(0xFFF5A623),
+      );
 
-  // 3. جدولة الأذان لليوم حسب إعدادات المستخدم (مش بس لما يفتح توقيت الصلاة)
-  ApiService().getPrayerTimes().then((t) =>
-      NotificationService().scheduleEnabledPrayers(t)).catchError((_) {});
+      // 2. Notifications Init
+      await NotificationService().init();
 
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => AppProvider(),
-      child: const MyApp(),
-    ),
-  );
+      // 3. Schedule Prayers
+      ApiService().getPrayerTimes().then((t) =>
+          NotificationService().scheduleEnabledPrayers(t)).catchError((e) {
+        debugPrint("Prayer scheduling error: $e");
+      });
+
+      // 4. Shorebird Auto Update (wrapped in try-catch)
+      try {
+        await _autoUpdate();
+      } catch (e) {
+        debugPrint("Shorebird update failed: $e");
+      }
+
+    } catch (e, stack) {
+      debugPrint("Initialization error: $e\\n$stack");
+    }
+
+    // Load persisted theme before building the app
+    final themeProvider = AppProvider();
+    await themeProvider.loadTheme();
+
+    runApp(
+      ChangeNotifierProvider<AppProvider>(
+        create: (_) => themeProvider,
+        child: const MyApp(),
+      ),
+    );
+  }, (error, stack) {
+    debugPrint("ZonedGuarded Error: $error\\n$stack");
+  });
 }
 
-/// فحص تلقائي في الخلفية عند فتح التطبيق: لو فيه تحديث جاهز، يعمل تلقائي.
-/// في النسخة العادية (غیر Shorebird) بيصمت ويعدي، فمفيش أثر على التشغيل العادي.
 Future<void> _autoUpdate() async {
-  try {
-    final updater = ShorebirdUpdater();
-    if (!updater.isAvailable) return;
-
-    final status = await updater.checkForUpdate();
-    if (status == UpdateStatus.outdated) {
-      // تحميل التحديث في الخلفية؛ هيتطبّق تلقائي عند أول إغلاق وفتح.
-      await updater.update();
-    }
-  } catch (e) {
-    debugPrint('Auto update check failed: $e');
+  final updater = ShorebirdUpdater();
+  if (!updater.isAvailable) return;
+  final status = await updater.checkForUpdate();
+  if (status == UpdateStatus.outdated) {
+    await updater.update();
   }
 }
 
@@ -89,7 +115,7 @@ class _MyAppState extends State<MyApp> {
     _requestPermissions();
     _subscription = ConnectivityService().connectivityStream.listen((results) {
       bool isNowConnected = results.any((r) => r != ConnectivityResult.none);
-      
+
       if (_isFirstLoad) {
         _wasConnected = isNowConnected;
         _isFirstLoad = false;
@@ -101,7 +127,7 @@ class _MyAppState extends State<MyApp> {
       } else if (!isNowConnected && _wasConnected) {
         _showConnectivitySnackBar(false);
       }
-      
+
       _wasConnected = isNowConnected;
     });
   }
@@ -120,10 +146,10 @@ class _MyAppState extends State<MyApp> {
     if (context == null) return;
 
     final localizations = AppLocalizations.of(context)!;
-    final message = isConnected 
-        ? localizations.internetConnected 
+    final message = isConnected
+        ? localizations.internetConnected
         : localizations.internetDisconnected;
-    
+
     messengerKey.currentState?.hideCurrentSnackBar();
     messengerKey.currentState?.showSnackBar(
       SnackBar(
@@ -166,6 +192,7 @@ class _MyAppState extends State<MyApp> {
         };
 
         return MaterialApp(
+          navigatorKey: navigatorKey,
           scaffoldMessengerKey: messengerKey,
           title: 'Islami App',
           debugShowCheckedModeBanner: false,
@@ -183,7 +210,6 @@ class _MyAppState extends State<MyApp> {
           routes: appRoutes,
           initialRoute: SplashScreen.routeName,
           onGenerateRoute: (settings) {
-            // بيتقبل arguments (رقم التاب) عشان شاشة الوجهات تفتح تاب معين
             if (settings.name == HomeScreen.routeName) {
               return MaterialPageRoute(
                 settings: settings,

@@ -1,7 +1,9 @@
 import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:flutter/material.dart';
+import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 import 'package:islami/dezeen/colors.dart';
 import 'package:islami/dezeen/images.dart';
+import 'package:islami/dezeen/theme.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/Screen/home.dart';
 import 'package:islami/Screen/HomeTab/surah_index_screen.dart';
@@ -9,20 +11,32 @@ import 'package:islami/Screen/HomeTab/tafsir_index_screen.dart';
 import 'package:islami/Screen/HomeTab/reciter_audio_screen.dart';
 import 'package:islami/Screen/HomeTab/azkar_screen.dart';
 import 'package:islami/Screen/HomeTab/duas_screen.dart';
-import 'package:islami/Screen/HomeTab/laylat_al_qadr_screen.dart';
 import 'package:provider/provider.dart';
 
 /// شاشة الوجهات: أيقونات دائرية (اسم تحت كل أيقونة) تفتح الشاشات الموجودة
 /// من غير أي تعديل عليها، وبتغيّر ألوانها مع الثيم.
-class DestinationsScreen extends StatelessWidget {
+class DestinationsScreen extends StatefulWidget {
   static const String routeName = "Destinations";
 
   const DestinationsScreen({super.key});
 
   @override
+  State<DestinationsScreen> createState() => _DestinationsScreenState();
+}
+
+class _DestinationsScreenState extends State<DestinationsScreen> {
+  @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
     final isDark = provider.isDarkMode();
+
+    // Sort destinations based on provider order
+    final sortedDestinations = List<_Destination>.from(_destinations);
+    sortedDestinations.sort((a, b) {
+      int indexA = provider.destinationOrder.indexOf(a.id);
+      int indexB = provider.destinationOrder.indexOf(b.id);
+      return indexA.compareTo(indexB);
+    });
 
     return ThemeSwitchingArea(
       child: Container(
@@ -38,13 +52,6 @@ class DestinationsScreen extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            leading: IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: Icon(
-                  Icons.arrow_back,
-                  color: isDark ? AppColors.blackDark : AppColors.yellow,
-                  size: 28),
-            ),
             title: Text(
               "الوجهات",
               style: TextStyle(
@@ -53,19 +60,23 @@ class DestinationsScreen extends StatelessWidget {
                 color: isDark ? Colors.white : Colors.black,
               ),
             ),
+            actions: [_ThemeToggle(isDark: isDark, provider: provider)],
           ),
           body: SafeArea(
-            child: GridView.builder(
+            child: ReorderableGridView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               gridDelegate:
                   const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 24,
-                crossAxisSpacing: 16,
-                childAspectRatio: 1.15,
+                crossAxisCount: 3,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 10,
+                childAspectRatio: 0.9,
               ),
-              itemCount: _destinations.length,
-              itemBuilder: (context, i) => _buildTile(context, _destinations[i], isDark),
+              itemCount: sortedDestinations.length,
+              itemBuilder: (context, i) => _buildTile(context, sortedDestinations[i], isDark),
+              onReorder: (oldIndex, newIndex) {
+                provider.reorderDestination(oldIndex, newIndex);
+              },
             ),
           ),
         ),
@@ -78,6 +89,7 @@ class DestinationsScreen extends StatelessWidget {
     final bg = isDark ? AppColors.yellowDark : Colors.white;
 
     return Column(
+      key: ValueKey(d.id),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Material(
@@ -86,8 +98,8 @@ class DestinationsScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(60),
             onTap: () => _open(context, d),
             child: Container(
-              width: 110,
-              height: 110,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: bg,
@@ -102,33 +114,66 @@ class DestinationsScreen extends StatelessWidget {
               ),
               child: d.crescent
                   ? _CrescentStar(gold: gold, bg: bg)
-                  : Icon(d.icon, color: gold, size: 48),
+                  : Icon(d.icon, color: gold, size: 36),
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Text(
           d.label,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
             color: isDark ? Colors.white : Colors.black,
           ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
-  void _open(BuildContext context, _Destination d) {
+  void _open(BuildContext context, _Destination d) async {
     if (d.homeTab != null) {
       Navigator.pushNamed(context, HomeScreen.routeName, arguments: d.homeTab);
+    } else if (d.route == SurahIndexScreen.routeName) {
+      final page = await Navigator.pushNamed(context, d.route!);
+      if (page is int && context.mounted) {
+        Provider.of<AppProvider>(context, listen: false).requestJumpToPage(page - 1);
+        Navigator.pushReplacementNamed(context, HomeScreen.routeName, arguments: 0);
+      }
     } else {
       Navigator.pushNamed(context, d.route!, arguments: d.routeArgs);
     }
   }
 }
 
+class _ThemeToggle extends StatelessWidget {
+  final bool isDark;
+  final AppProvider provider;
+  const _ThemeToggle({required this.isDark, required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    return ThemeSwitcher(
+      builder: (ctx) => SizedBox(
+        width: 48,
+        height: 48,
+        child: IconButton(
+          icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: AppColors.yellow, size: 26),
+          tooltip: isDark ? "الوضع الفاتح" : "الوضع الداكن",
+          onPressed: () {
+            final target = isDark ? ThemeMode.light : ThemeMode.dark;
+            provider.changeTheme(target);
+            ThemeSwitcher.of(ctx).changeTheme(theme: isDark ? Apptheme.lightTheme : Apptheme.darkTheme);
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class _Destination {
+  final String id;
   final String label;
   final IconData icon;
   final bool crescent;
@@ -136,7 +181,7 @@ class _Destination {
   final String? route;
   final Object? routeArgs;
 
-  const _Destination(this.label,
+  const _Destination(this.id, this.label,
       {this.icon = Icons.circle,
       this.crescent = false,
       this.homeTab,
@@ -145,19 +190,18 @@ class _Destination {
 }
 
 const _destinations = [
-  _Destination("القرآن", icon: Icons.auto_stories, homeTab: 0),
-  _Destination("الراديو", icon: Icons.radio, homeTab: 1),
-  _Destination("مواقيت الصلاة", crescent: true, homeTab: 2),
-  _Destination("الإعدادات", icon: Icons.settings, homeTab: 3),
-  _Destination("فهرس السور", icon: Icons.menu_book, route: SurahIndexScreen.routeName),
-  _Destination("فهرس التفسير", icon: Icons.translate, route: TafsirIndexScreen.routeName),
-  _Destination("الشيخ المنشاوي",
+  _Destination("quran", "القرآن", icon: Icons.auto_stories, homeTab: 0),
+  _Destination("radio", "الراديو", icon: Icons.radio, homeTab: 1),
+  _Destination("prayer", "مواقيت الصلاة", crescent: true, homeTab: 2),
+  _Destination("settings", "الإعدادات", icon: Icons.settings, homeTab: 3),
+  _Destination("surah_index", "فهرس السور", icon: Icons.menu_book, route: SurahIndexScreen.routeName),
+  _Destination("tafsir_index", "فهرس التفسير", icon: Icons.translate, route: TafsirIndexScreen.routeName),
+  _Destination("reciter", "الشيخ المنشاوي",
       icon: Icons.person,
       route: ReciterAudioScreen.routeName,
       routeArgs: {'reciter_id': 112}),
-  _Destination("الأذكار", icon: Icons.auto_awesome, route: AzkarScreen.routeName),
-  _Destination("الأدعية", icon: Icons.favorite, route: DuasScreen.routeName),
-  _Destination("ليلة القدر", icon: Icons.stars, route: LaylatAlQadrScreen.routeName),
+  _Destination("azkar", "الأذكار", icon: Icons.auto_awesome, route: AzkarScreen.routeName),
+  _Destination("duas", "الأدعية", icon: Icons.favorite, route: DuasScreen.routeName),
 ];
 
 /// هلال ونجمة مرسومة بدائرتين (القصّية بلون خلفية الدائرة عشان تدمج) + نجمة،
@@ -181,7 +225,7 @@ class _CrescentStar extends StatelessWidget {
             height: 46,
             decoration: BoxDecoration(shape: BoxShape.circle, color: gold),
           ),
-          // دائرة القصّ: لونها = خلفية الدائرة فبتنقص جزء من الهلالية بصرياً
+          // دائرة القصّ: لونها = خلفية الدائرة فبتنقص جزء من الهلالية بصرياُ
           Transform.translate(
             offset: const Offset(10, -8),
             child: Container(

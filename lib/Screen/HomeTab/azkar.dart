@@ -104,45 +104,7 @@ class _AzkarTabState extends State<AzkarTab> {
                   itemCount: category.azkar.length,
                   itemBuilder: (context, index) {
                     final item = category.azkar[index];
-                    return Card(
-                      color: isDark ? Colors.white10 : Colors.grey[100],
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(15.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              item.zekr,
-                              style: TextStyle(
-                                fontSize: 20,
-                                color: isDark ? Colors.white : Colors.black87,
-                                height: 1.5,
-                              ),
-                              textAlign: TextAlign.center,
-                              textDirection: TextDirection.rtl,
-                            ),
-                            const SizedBox(height: 10),
-                            if (item.description.isNotEmpty)
-                              Text(
-                                item.description,
-                                style: const TextStyle(fontSize: 14, color: AppColors.yellow),
-                                textAlign: TextAlign.center,
-                                textDirection: TextDirection.rtl,
-                              ),
-                            const SizedBox(height: 10),
-                            CircleAvatar(
-                              backgroundColor: AppColors.yellow,
-                              radius: 15,
-                              child: Text(
-                                item.count,
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return _AzkarItemCard(item: item, isDark: isDark);
                   },
                 ),
               ),
@@ -150,6 +112,86 @@ class _AzkarTabState extends State<AzkarTab> {
           ),
         );
       },
+    );
+  }
+}
+
+class _AzkarItemCard extends StatefulWidget {
+  final AzkarItem item;
+  final bool isDark;
+
+  const _AzkarItemCard({required this.item, required this.isDark});
+
+  @override
+  State<_AzkarItemCard> createState() => _AzkarItemCardState();
+}
+
+class _AzkarItemCardState extends State<_AzkarItemCard> {
+  late int _remaining;
+
+  @override
+  void initState() {
+    super.initState();
+    _remaining = int.tryParse(widget.item.count) ?? 1;
+  }
+
+  void _decrement() {
+    if (_remaining > 0) {
+      setState(() {
+        _remaining--;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: widget.isDark ? Colors.white10 : Colors.grey[100],
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: InkWell(
+        onTap: _decrement,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(15.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.item.zekr,
+                style: TextStyle(
+                  fontSize: 20,
+                  color: widget.isDark ? Colors.white : Colors.black87,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+                textDirection: TextDirection.rtl,
+              ),
+              const SizedBox(height: 10),
+              if (widget.item.description.isNotEmpty)
+                Text(
+                  widget.item.description,
+                  style: const TextStyle(fontSize: 14, color: AppColors.yellow),
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                ),
+              const SizedBox(height: 10),
+              Center(
+                child: GestureDetector(
+                  onTap: _decrement,
+                  child: CircleAvatar(
+                    backgroundColor: _remaining > 0 ? AppColors.yellow : Colors.grey,
+                    radius: 18,
+                    child: Text(
+                      '$_remaining',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

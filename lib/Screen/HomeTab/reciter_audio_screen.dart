@@ -1,11 +1,11 @@
+import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:flutter/material.dart';
 import 'package:islami/services/api_service.dart';
 import 'package:islami/dezeen/colors.dart';
+import 'package:islami/dezeen/theme.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/dezeen/images.dart';
 import 'package:provider/provider.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 
 class ReciterAudioScreen extends StatefulWidget {
   static const String routeName = "ReciterAudio";
@@ -19,10 +19,8 @@ class ReciterAudioScreen extends StatefulWidget {
 
 class _ReciterAudioScreenState extends State<ReciterAudioScreen> {
   final ApiService _apiService = ApiService();
-  final AudioPlayer _audioPlayer = AudioPlayer();
   Map<String, dynamic> _reciterData = {};
   bool _isLoading = true;
-  int? _currentPlayingIndex;
 
   @override
   void initState() {
@@ -44,12 +42,6 @@ class _ReciterAudioScreenState extends State<ReciterAudioScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
   Future<void> _playTrack(int index) async {
     final track = _reciterData['audio_urls'][index];
     final String? url = track?['audio_url']?.toString();
@@ -62,35 +54,15 @@ class _ReciterAudioScreenState extends State<ReciterAudioScreen> {
       return;
     }
     final String title = track?['surah_name_ar']?.toString() ?? "";
-
-    try {
-      if (_audioPlayer.playing && _currentPlayingIndex == index) {
-        await _audioPlayer.pause();
-      } else {
-        final audioSource = AudioSource.uri(
-          Uri.parse(url),
-          tag: MediaItem(
-            id: 'reciter_${widget.reciterId}_$index',
-            album: _reciterData['reciter_name'] ?? "المصحف المرتل",
-            title: title,
-            artUri: Uri.parse("https://quran.yousefheiba.com/assets/images/quran.png"),
-          ),
-        );
-        await _audioPlayer.setAudioSource(audioSource);
-        await _audioPlayer.play();
-        if (mounted) {
-          setState(() {
-            _currentPlayingIndex = index;
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("خطأ في التشغيل: $e")),
-        );
-      }
-    }
+    final String album = _reciterData['reciter_name']?.toString() ?? "المصحف المرتل";
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    await provider.playTrack(
+      url: url,
+      reciterId: widget.reciterId,
+      trackIndex: index,
+      title: title,
+      album: album,
+    );
   }
 
   @override
@@ -98,6 +70,8 @@ class _ReciterAudioScreenState extends State<ReciterAudioScreen> {
     var provider = Provider.of<AppProvider>(context);
     final String reciterName = _reciterData['reciter_name'] ?? "الشيخ محمد صديق المنشاوي";
     final List<dynamic> tracks = _reciterData['audio_urls'] ?? [];
+    final isPlayingHere = provider.currentReciterId == widget.reciterId;
+    final isCurrentPlaying = isPlayingHere && provider.audioPlayer.playing;
 
     return Container(
       decoration: BoxDecoration(
@@ -113,12 +87,14 @@ class _ReciterAudioScreenState extends State<ReciterAudioScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: Text(reciterName, style: TextStyle(
-            color: provider.isDarkMode() ? AppColors.blackDark : Colors.black,
-            fontWeight: FontWeight.bold
-          )),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.yellow, size: 26),
+            tooltip: "رجوع",
+            onPressed: () => Navigator.maybePop(context),
+          ),
+          title: Text(reciterName, style: const TextStyle(color: AppColors.yellow, fontWeight: FontWeight.bold, fontSize: 22)),
           centerTitle: true,
-          iconTheme: IconThemeData(color: provider.isDarkMode() ? AppColors.blackDark : Colors.black),
+          actions: [_ThemeToggle()],
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator(color: AppColors.yellow))
@@ -130,37 +106,49 @@ class _ReciterAudioScreenState extends State<ReciterAudioScreen> {
                     separatorBuilder: (context, index) => Divider(color: AppColors.yellow.withValues(alpha: 0.3)),
                     itemBuilder: (context, index) {
                       final track = tracks[index];
-                      return StreamBuilder<PlayerState>(
-                        stream: _audioPlayer.playerStateStream,
-                        builder: (context, snapshot) {
-                          final playerState = snapshot.data;
-                          final isThisPlaying = playerState?.playing ?? false;
-                          final bool isCurrent = _currentPlayingIndex == index;
+                      final bool isThisPlaying = isCurrentPlaying && provider.currentPlayingIndex == index;
 
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: AppColors.yellow,
-                              child: Icon(
-                                (isCurrent && isThisPlaying) ? Icons.pause : Icons.play_arrow,
-                                color: Colors.white,
-                              ),
-                            ),
-                            title: Text(
-                              track['surah_name_ar'],
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: provider.isDarkMode() ? Colors.white : Colors.black,
-                              ),
-                            ),
-                            subtitle: Text("سورة رقم ${track['surah_id']}", style: const TextStyle(color: Colors.grey)),
-                            onTap: () => _playTrack(index),
-                          );
-                        },
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.yellow,
+                          child: Icon(
+                            isThisPlaying ? Icons.pause : Icons.play_arrow,
+                            color: Colors.white,
+                          ),
+                        ),
+                        title: Text(
+                          track['surah_name_ar'],
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: provider.isDarkMode() ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        subtitle: Text("سورة رقم ${track['surah_id']}", style: const TextStyle(color: Colors.grey)),
+                        onTap: () => _playTrack(index),
                       );
                     },
                   ),
       ),
+    );
+  }
+}
+
+class _ThemeToggle extends StatelessWidget {
+  const _ThemeToggle();
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<AppProvider>(context);
+    final isDark = provider.isDarkMode();
+    return ThemeSwitcher(
+      builder: (ctx) => SizedBox(width: 48, height: 48, child: IconButton(
+        icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: AppColors.yellow, size: 26),
+        tooltip: isDark ? "الوضع الفاتح" : "الوضع الداكن",
+        onPressed: () {
+          provider.changeTheme(isDark ? ThemeMode.light : ThemeMode.dark);
+          ThemeSwitcher.of(ctx).changeTheme(theme: isDark ? Apptheme.lightTheme : Apptheme.darkTheme);
+        },
+      )),
     );
   }
 }
