@@ -13,7 +13,7 @@ class ApiService {
   static const String _prayerBaseUrl = 'https://quran.yousefheiba.com/api/getPrayerTimes';
   static const String _quranBaseUrl = 'https://api.alquran.cloud/v1';
   static const String _hadithBaseUrl = 'https://hadis-api-id.vercel.app/hadith';
-  static const String _tafsirBaseUrl = 'https://quranenc.com/api/v1/translation/sura/arabic_moyassar';
+  static const String _tafsirBaseUrl = 'https://quranenc.com/api/v1/translation/sura/arabic_saddi';
   static const String _azkarUrl = 'https://quran.yousefheiba.com/api/azkar';
   static const String _duasUrl = 'https://quran.yousefheiba.com/api/duas';
   static const String _surahsListUrl = 'https://quran.yousefheiba.com/api/surahs';
