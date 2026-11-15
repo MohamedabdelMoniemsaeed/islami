@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:islami/dezeen/sura_name.dart';
@@ -10,62 +11,37 @@ import 'package:islami/models/duas_model.dart';
 import 'package:islami/services/cache_service.dart';
 
 class ApiService {
-  static const String _prayerBaseUrl = 'https://quran.yousefheiba.com/api/getPrayerTimes';
+  static const String _prayerBaseUrl = 'https://api.aladhan.com/v1/timings?latitude=30.0444&longitude=31.2357&method=4';
   static const String _quranBaseUrl = 'https://api.alquran.cloud/v1';
   static const String _hadithBaseUrl = 'https://hadis-api-id.vercel.app/hadith';
-  static const String _tafsirBaseUrl = 'https://quranenc.com/api/v1/translation/sura/arabic_saddi';
-  static const String _azkarUrl = 'https://quran.yousefheiba.com/api/azkar';
-  static const String _duasUrl = 'https://quran.yousefheiba.com/api/duas';
-  static const String _surahsListUrl = 'https://quran.yousefheiba.com/api/surahs';
-  static const String _ayahsBySurahUrl = 'https://quran.yousefheiba.com/api/ayah?number=';
-  static const String _laylatAlQadrUrl = 'https://quran.yousefheiba.com/api/laylatAlQadr';
+  static const String _surahsListUrl = 'https://api.alquran.cloud/v1/surah';
+  // shortcut: Laylat Al Qadr API is down at yousefheiba.com, uses static fallback instead
   static const String _minshawiCdnBase = 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/';
 
   final CacheService _cacheService = CacheService();
 
-  Future<List<dynamic>> getAyahsBySurah(int surahNumber) async {
+  Future<List<dynamic>> getSurahsList() async {
     try {
-      final response = await http.get(Uri.parse('$_ayahsBySurahUrl$surahNumber')).timeout(const Duration(seconds: 30));
+      final response = await http.get(Uri.parse(_surahsListUrl)).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final decodedBody = utf8.decode(response.bodyBytes);
-        return json.decode(decodedBody);
+        final Map<String, dynamic> data = json.decode(decodedBody);
+        final List<dynamic> surahs = data['data'];
+        await _cacheService.saveData(CacheService.keySurahsList, json.encode(surahs));
+        return surahs;
       }
       throw Exception('Server Error');
     } catch (e) {
+      final localData = await _cacheService.getData(CacheService.keySurahsList);
+      if (localData != null) {
+        try {
+          return json.decode(localData);
+        } catch (_) {
+          await _cacheService.removeData(CacheService.keySurahsList);
+        }
+      }
       return [];
     }
-  }
-
-  Future<Map<String, dynamic>> getLaylatAlQadr() async {
-    try {
-      final response = await http.get(Uri.parse(_laylatAlQadrUrl)).timeout(const Duration(seconds: 30));
-      if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
-      }
-      throw Exception('Failed to load data');
-    } catch (e) {
-      return {};
-    }
-  }
-
-  Future<Map<String, dynamic>> getReciterAudio(int reciterId) async {
-    // الشيخ محمد صديق المنشاوي — المصحف المرتل برواية حفص عن عاصم كاملاً (114 سورة) عبر شبكة Mp3Quran الرسمية
-    final List<Map<String, dynamic>> tracks = [];
-    for (int i = 0; i < SuraName.listSuraName.length; i++) {
-      final int surahId = i + 1;
-      final String paddedId = surahId.toString().padLeft(3, '0');
-      tracks.add({
-        'surah_id': surahId.toString(),
-        'surah_name_ar': 'سورة ${SuraName.listSuraName[i]}',
-        'audio_url': '$_minshawiCdnBase$paddedId.mp3',
-      });
-    }
-
-    return {
-      'reciter_id': reciterId.toString(),
-      'reciter_name': 'الشيخ محمد صديق المنشاوي',
-      'audio_urls': tracks,
-    };
   }
 
   Future<PrayerTimes> getPrayerTimes() async {
@@ -108,39 +84,41 @@ class ApiService {
           await _cacheService.removeData('${CacheService.keySurahPrefix}$surahNumber');
         }
       }
-      throw Exception('هذه السورة غير محملة مسبقاً، يرجى الاتصال بالإنترنت');
-    }
-  }
-
-  Future<DuasResponse> getDuas() async {
-    try {
-      final response = await http.get(Uri.parse(_duasUrl)).timeout(const Duration(seconds: 30));
-      if (response.statusCode == 200) {
-        final decodedBody = utf8.decode(response.bodyBytes);
-        await _cacheService.saveData(CacheService.keyDuas, decodedBody);
-        return DuasResponse.fromJson(json.decode(decodedBody));
-      }
-      throw Exception('Server Error');
-    } catch (e) {
-      final localData = await _cacheService.getData(CacheService.keyDuas);
-      if (localData != null) {
-        try {
-          return DuasResponse.fromJson(json.decode(localData));
-        } catch (_) {
-          await _cacheService.removeData(CacheService.keyDuas);
-        }
-      }
-      throw Exception('الأدعية غير متوفرة حالياً بدون إنترنت');
+      throw Exception('هذه السورة غير محملة مسبقاُ، يرجى الاتصال بالإنترنت');
     }
   }
 
   Future<TafsirResponse> getTafsir(int surahNumber) async {
     try {
-      final response = await http.get(Uri.parse('$_tafsirBaseUrl/$surahNumber')).timeout(const Duration(seconds: 30));
-      if (response.statusCode == 200) {
-        final decodedBody = utf8.decode(response.bodyBytes);
-        await _cacheService.saveTafsir(surahNumber, decodedBody);
-        return TafsirResponse.fromJson(json.decode(decodedBody));
+      final tafsirRes = await http.get(Uri.parse('https://api.alquran.cloud/v1/surah/$surahNumber/ar.jalalayn')).timeout(const Duration(seconds: 30));
+      final quranRes = await http.get(Uri.parse('https://api.alquran.cloud/v1/surah/$surahNumber/ar.quran-uthmani')).timeout(const Duration(seconds: 30));
+
+      if (tafsirRes.statusCode == 200 && quranRes.statusCode == 200) {
+        final tafsirData = json.decode(utf8.decode(tafsirRes.bodyBytes))['data'];
+        final quranData = json.decode(utf8.decode(quranRes.bodyBytes))['data'];
+
+        final List tafsirAyahs = tafsirData['ayahs'];
+        final List quranAyahs = quranData['ayahs'];
+
+        List<TafsirItem> items = [];
+        for (int i = 0; i < tafsirAyahs.length; i++) {
+          items.add(TafsirItem(
+            sura: surahNumber.toString(),
+            aya: tafsirAyahs[i]['numberInSurah'].toString(),
+            arabicText: i < quranAyahs.length ? quranAyahs[i]['text'] : '',
+            translation: tafsirAyahs[i]['text'],
+          ));
+        }
+
+        final responseMap = {'result': items.map((e) => {
+          'sura': e.sura,
+          'aya': e.aya,
+          'arabic_text': e.arabicText,
+          'translation': e.translation,
+        }).toList()};
+
+        await _cacheService.saveTafsir(surahNumber, json.encode(responseMap));
+        return TafsirResponse.fromJson(responseMap);
       }
       throw Exception('Server Error');
     } catch (e) {
@@ -148,39 +126,42 @@ class ApiService {
       if (localData != null) {
         try {
           return TafsirResponse.fromJson(json.decode(localData));
-        } catch (_) {
-          await _cacheService.removeData('${CacheService.keyTafsirPrefix}$surahNumber');
-        }
+        } catch (_) {}
       }
-      throw Exception('التفسير غير محمل مسبقاً لهذه السورة');
+      throw Exception('التفسير غير متوفر حالياَ');
     }
   }
 
-  Future<AzkarResponse> getAzkar() async {
-    try {
-      final response = await http.get(Uri.parse(_azkarUrl)).timeout(const Duration(seconds: 30));
-      if (response.statusCode == 200) {
-        final decodedBody = utf8.decode(response.bodyBytes);
-        await _cacheService.saveData(CacheService.keyAzkar, decodedBody);
-        return AzkarResponse.fromJson(json.decode(decodedBody));
-      }
-      throw Exception('Server Error');
-    } catch (e) {
-      final localData = await _cacheService.getData(CacheService.keyAzkar);
-      if (localData != null) {
-        try {
-          return AzkarResponse.fromJson(json.decode(localData));
-        } catch (_) {
-          await _cacheService.removeData(CacheService.keyAzkar);
-        }
-      }
-      throw Exception('الأذكار غير متوفرة بدون إنترنت');
-    }
+  /// Laylat Al Qadr — static fallback since the old yousefheiba endpoint is down
+  Future<Map<String, dynamic>> getLaylatAlQadr() async {
+    return {
+      'content':
+        'ليلة القدر خير من ألف شهر، تنزل الملائكة والروح فيها بإذن ربهم من كل أمر، سلام هي حتى مطلع الفجر. هي ليلة مباركة اختارها الله سبحانه وتعالى، وقد أنزل الله فيها القرآن هدى للناس وبينات من الهدى والفرقان.',
+    };
   }
 
-  // الدوال الأخرى (Hadith) يمكن تطبيق نفس المنطق عليها إذا لزم الأمر
+  /// توليد قائمة تلاوات الشيخ محمد صديق المنشاوي من شبكة Mp3Quran الرسمية
+  Future<Map<String, dynamic>> getReciterAudio(int reciterId) async {
+    final List<Map<String, dynamic>> tracks = [];
+    for (int i = 0; i < SuraName.listSuraName.length; i++) {
+      final int surahId = i + 1;
+      final String paddedId = surahId.toString().padLeft(3, '0');
+      tracks.add({
+        'surah_id': surahId.toString(),
+        'surah_name_ar': 'سورة ${SuraName.listSuraName[i]}',
+        'audio_url': '$_minshawiCdnBase$paddedId.mp3',
+      });
+    }
+    return {
+      'reciter_id': reciterId.toString(),
+      'reciter_name': 'الشيخ محمد صديق المنشاوي',
+      'audio_urls': tracks,
+    };
+  }
+
   Future<HadithResponse> getHadiths(String book, int page) async {
-    final response = await http.get(Uri.parse('$_hadithBaseUrl/$book?page=$page')).timeout(const Duration(seconds: 30));
+    final response = await http.get(Uri.parse('$_hadithBaseUrl/$book?page=$page'))
+        .timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       return HadithResponse.fromJson(json.decode(response.body));
     } else {
@@ -188,31 +169,21 @@ class ApiService {
     }
   }
 
-  Future<dynamic> getSurahsList() async {
+  Future<AzkarResponse> getAzkar() async {
     try {
-      final response = await http.get(Uri.parse(_surahsListUrl)).timeout(const Duration(seconds: 30));
-      if (response.statusCode == 200) {
-        final decodedBody = utf8.decode(response.bodyBytes);
-        final dynamic data = json.decode(decodedBody);
-        if (data is Map && data.containsKey('value')) {
-          await _cacheService.saveData(CacheService.keySurahsList, json.encode(data['value']));
-          return data['value'];
-        }
-        await _cacheService.saveData(CacheService.keySurahsList, decodedBody);
-        return data;
-      }
-      throw Exception('Server Error');
+      final String jsonString = await rootBundle.loadString('assets/azkar.json');
+      return AzkarResponse.fromJson(json.decode(jsonString));
     } catch (e) {
-      final localData = await _cacheService.getData(CacheService.keySurahsList);
-      if (localData != null) {
-        try {
-          return json.decode(localData);
-        } catch (_) {
-          await _cacheService.removeData(CacheService.keySurahsList);
-        }
-      }
-      return [];
+      return AzkarResponse(categories: []);
+    }
+  }
+
+  Future<DuasResponse> getDuas() async {
+    try {
+      final String jsonString = await rootBundle.loadString('assets/duas.json');
+      return DuasResponse.fromJson(json.decode(jsonString));
+    } catch (e) {
+      return DuasResponse(categories: []);
     }
   }
 }
-

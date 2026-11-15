@@ -223,15 +223,18 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
 
-      // حل مشكلة 'Null' is not a subtype of 'MediaItem' بإضافة tag
-      // نقوم بتعريف MediaItem لكل صوت ليتوافق مع just_audio_background
-      await _previewPlayer.setAsset(
-        'assets/sounds/${index + 1}.mp3',
-        tag: MediaItem(
-          id: soundId,
-          album: 'أذان',
-          title: _adhanPreviewSounds[index].$2,
-          artist: 'تطبيق إسلامي',
+      final soundNum = soundId.replaceAll(RegExp(r'[^0-9]'), '');
+      final assetPath = 'assets/sounds/${soundNum.isEmpty ? '${index + 1}' : soundNum}.mp3';
+
+      await _previewPlayer.setAudioSource(
+        AudioSource.asset(
+          assetPath,
+          tag: MediaItem(
+            id: soundId,
+            album: 'معاينة أذان',
+            title: _adhanPreviewSounds[index].$2,
+            artUri: Uri.parse('asset:///assets/images/quran.png'),
+          ),
         ),
       );
 
@@ -370,6 +373,18 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
   }
 
   Widget _buildHeader(AppLocalizations locale, PrayerTimes times, bool isDark) {
+    final locationText = (times.region.isNotEmpty && times.country.isNotEmpty)
+        ? "${times.region}، ${times.country}"
+        : (times.region.isNotEmpty
+            ? times.region
+            : (times.country.isNotEmpty ? times.country : "القاهرة، مصر"));
+
+    String gregorianFormatted = times.dateEn;
+    try {
+      final parsedG = DateTime.parse(times.dateEn);
+      gregorianFormatted = DateFormat("d MMMM yyyy", "ar").format(parsedG);
+    } catch (_) {}
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -377,22 +392,23 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
       children: [
         const SizedBox(height: 0),
         Text(
-          "${times.dayAr} - ${times.dateHijri} هـ",
+          "${times.dayAr} • ${times.dateHijri} هـ  |  $gregorianFormatted م",
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
             color: isDark ? Colors.white70 : Colors.black54,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.location_on, size: 14, color: AppColors.yellow),
+            const Icon(Icons.location_on, size: 14, color: AppColors.yellow),
             const SizedBox(width: 4),
             Text(
-              "${times.region}، ${times.country}",
+              locationText,
               style: TextStyle(
                 fontSize: 12,
                 color: isDark ? Colors.white54 : Colors.black45,

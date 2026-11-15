@@ -91,10 +91,11 @@ class _TafsirIndexScreenState extends State<TafsirIndexScreen> {
                   final bool hasApiData = _surahs.isNotEmpty && index < _surahs.length;
                   final dynamic surahData = hasApiData ? _surahs[index] : null;
 
-                  final String name = surahData?['name_ar'] ?? SuraName.listSuraName[index];
+                  final String name = surahData?['name'] ?? SuraName.listSuraName[index];
                   final int surahNumber = int.tryParse(surahData?['number']?.toString() ?? '') ?? (index + 1);
-                  final String ayahs = surahData?['ayat_count']?.toString() ?? "---";
-                  final String type = surahData?['type'] == 'Meccan' ? 'مكية' : 'مدنية';
+                  final String ayahs = surahData?['numberOfAyahs']?.toString() ?? "---";
+                  final String rawType = surahData?['revelationType']?.toString() ?? '';
+                  final String type = (rawType == 'Meccan') ? 'مكية' : 'مدنية';
 
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

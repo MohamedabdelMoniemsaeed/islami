@@ -92,9 +92,9 @@ class _SurahIndexScreenState extends State<SurahIndexScreen> {
                   final bool hasApiData = _surahs.isNotEmpty && index < _surahs.length;
                   final dynamic surahData = hasApiData ? _surahs[index] : null;
 
-                  final String name = surahData?['name_ar'] ?? SuraName.listSuraName[index];
-                  final String ayahs = surahData?['ayat_count']?.toString() ?? "---";
-                  final String type = surahData?['type'] == 'Meccan' ? 'مكية' : 'مدنية';
+                  final String name = surahData?['name'] ?? SuraName.listSuraName[index];
+                  final String ayahs = surahData?['numberOfAyahs']?.toString() ?? "---";
+                  final String type = surahData?['revelationType'] == 'Meccan' ? 'مكية' : 'مدنية';
                   final int page = SurahPages.startPages[index];
 
                   return ListTile(

@@ -42,6 +42,8 @@ class NotificationService {
   ];
   static const String defaultAdhanSound = 'adhan_1';
 
+  static const String channelVersion = 'prayer_adhan_v5';
+
   /// اسم الـ raw resource للصوت المختار
   Future<String> getAdhanSound() async {
     final prefs = await SharedPreferences.getInstance();
@@ -75,14 +77,24 @@ class NotificationService {
     }
   }
 
-  Future<void> init() async {
-    tz.initializeTimeZones();
+  static void _ensureTimeZonesInitialized() {
     try {
-      // محاولة تعيين التوقيت المحلي
-      tz.setLocalLocation(tz.getLocation('Africa/Cairo'));
-    } catch (e) {
-      debugPrint("Could not set local location: $e");
+      tz.local;
+    } catch (_) {
+      tz.initializeTimeZones();
+      try {
+        final offsetMillis = DateTime.now().timeZoneOffset.inMilliseconds;
+        final matchingLoc = tz.timeZoneDatabase.locations.values.firstWhere(
+          (loc) => loc.currentTimeZone.offset == offsetMillis,
+          orElse: () => tz.getLocation('Africa/Cairo'),
+        );
+        tz.setLocalLocation(matchingLoc);
+      } catch (_) {}
     }
+  }
+
+  Future<void> init() async {
+    _ensureTimeZonesInitialized();
 
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -99,6 +111,25 @@ class NotificationService {
     } catch (e) {
       debugPrint("Notification permissions request error: $e");
     }
+
+    // تنظيف القنوات القديمة والمؤقتة لضمان اعتماد إعدادات الصوت والإنذار الجديدة
+    try {
+      final legacyChannels = [
+        'prayer_channel',
+        'prayer_notifications',
+        'prayer_channel_adhan_1',
+        'prayer_channel_adhan_2',
+        'prayer_channel_adhan_3',
+        'prayer_channel_adhan_4',
+        'prayer_adhan_v4_adhan_1',
+        'prayer_adhan_v4_adhan_2',
+        'prayer_adhan_v4_adhan_3',
+        'prayer_adhan_v4_adhan_4',
+      ];
+      for (final ch in legacyChannels) {
+        await androidPlugin?.deleteNotificationChannel(ch);
+      }
+    } catch (_) {}
   }
 
   /// الزر الرئيسي للأذان (ملحق افتراضيًا)
@@ -188,13 +219,17 @@ class NotificationService {
       final parts = dateStr.split('-');
       if (parts.length == 3) {
         try {
-          return DateTime(
-            int.parse(parts[0]),
-            int.parse(parts[1]),
-            int.parse(parts[2]),
-            hour,
-            minute,
-          );
+          int year, month, day;
+          if (parts[0].length == 4) {
+            year = int.parse(parts[0]);
+            month = int.parse(parts[1]);
+            day = int.parse(parts[2]);
+          } else {
+            day = int.parse(parts[0]);
+            month = int.parse(parts[1]);
+            year = int.parse(parts[2]);
+          }
+          return DateTime(year, month, day, hour, minute);
         } catch (_) {}
       }
     }
@@ -203,6 +238,7 @@ class NotificationService {
 
   Future<void> schedulePrayerNotification(
       int id, String title, DateTime scheduledTime) async {
+    _ensureTimeZonesInitialized();
     final now = DateTime.now();
     // إذا كان وقت الصلاة لليوم قد مر، تُجدول لنفس الوقت غداً
     DateTime targetTime = scheduledTime;
@@ -212,8 +248,8 @@ class NotificationService {
 
     final soundId = await getAdhanSound();
     final soundLabel = adhanSoundLabel(soundId);
-    // تخصيص معرف القناة لكل صوت أذان ليحترم أندرويد 8+ تغيير الصوت
-    final channelId = 'prayer_channel_$soundId';
+    // تخصيص معرف القناة لكل صوت أذان ليحترم أندرويد 8+ تغيير الصوت ويمنع التخزين المؤقت
+    final channelId = '${channelVersion}_$soundId';
 
     try {
       final androidPlugin = _notificationsPlugin
@@ -227,6 +263,7 @@ class NotificationService {
         playSound: true,
         sound: RawResourceAndroidNotificationSound(soundId),
         enableVibration: true,
+        enableLights: true,
         audioAttributesUsage: AudioAttributesUsage.alarm,
       );
       await androidPlugin?.createNotificationChannel(channel);
@@ -237,35 +274,87 @@ class NotificationService {
       'أذان $soundLabel',
       channelDescription: 'تنبيهات بمواعيد الصلوات الخمس مع صوت الأذان',
       importance: Importance.max,
-      priority: Priority.high,
+      priority: Priority.max,
       playSound: true,
       enableVibration: true,
       sound: RawResourceAndroidNotificationSound(soundId),
       audioAttributesUsage: AudioAttributesUsage.alarm,
       category: AndroidNotificationCategory.alarm,
       fullScreenIntent: true,
+      visibility: NotificationVisibility.public,
+      ticker: 'حان الآن موعد أذان $title',
       styleInformation: BigTextStyleInformation(
-        'حان الآن موعد أذان $title',
+        'حان الآن موعد أذان صلاة $title، حي على الصلاة، حي على الفلاح',
         contentTitle: 'موعد الصلاة',
-        summaryText: 'حان الآن موعد أذان $title',
+        summaryText: 'أذان $title',
       ),
     );
 
     final NotificationDetails notificationDetails =
         NotificationDetails(android: androidDetails);
 
+    // بناء توقيت محلي جداري دقيق
+    final scheduledDate = tz.TZDateTime(
+      tz.local,
+      targetTime.year,
+      targetTime.month,
+      targetTime.day,
+      targetTime.hour,
+      targetTime.minute,
+    );
+
+    // 1. المحاولة بـ alarmClock وتكرار يومي (أعلى دقة ومستوى منبه حقيقي يتجاوز قفل الشاشة والوضع الصامت)
     try {
       await _notificationsPlugin.zonedSchedule(
         id,
-        'موعد الصلاة',
-        'حان الآن موعد أذان $title',
-        tz.TZDateTime.from(targetTime, tz.local),
+        'موعد أذان $title',
+        'حان الآن موعد أذان صلاة $title',
+        scheduledDate,
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.alarmClock,
+        matchDateTimeComponents: DateTimeComponents.time,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
-    } catch (_) {}
+      return;
+    } catch (e) {
+      debugPrint("alarmClock schedule failed for $title: $e, falling back to exactAllowWhileIdle");
+    }
+
+    // 2. المحاولة البديلة بـ exactAllowWhileIdle مع التكرار اليومي
+    try {
+      await _notificationsPlugin.zonedSchedule(
+        id,
+        'موعد أذان $title',
+        'حان الآن موعد أذان صلاة $title',
+        scheduledDate,
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      return;
+    } catch (e) {
+      debugPrint("exactAllowWhileIdle schedule failed for $title: $e, falling back to inexact");
+    }
+
+    // 3. المحاولة البديلة بـ inexact (تضمن وصول الإشعار حتى بدون صلاحية المنبه الدقيق)
+    try {
+      await _notificationsPlugin.zonedSchedule(
+        id,
+        'موعد أذان $title',
+        'حان الآن موعد أذان صلاة $title',
+        scheduledDate,
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.inexact,
+        matchDateTimeComponents: DateTimeComponents.time,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (e) {
+      debugPrint("inexact schedule failed for $title: $e");
+    }
   }
 
   Future<void> cancelAll() async {

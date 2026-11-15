@@ -242,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
           int surahPage = SurahPages.startPages[surahNum - 1];
           if (surahPage <= (provider.currentQuranPage + 1)) {
             currentSuraNum = surahNum;
-            currentSuraName = surah['name_ar'] ?? "سورة";
+            currentSuraName = surah['name'] ?? "سورة";
           } else {
             break;
           }

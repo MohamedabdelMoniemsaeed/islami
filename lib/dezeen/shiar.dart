@@ -185,6 +185,12 @@ class AppProvider extends ChangeNotifier {
     saveDestinationOrder(list);
   }
 
+  Future<void> _ensureAudioSession() async {
+    final session = await AudioSession.instance;
+    await session.configure(const AudioSessionConfiguration.music());
+    await session.setActive(true);
+  }
+
   // ===== مشغل الصوت =====
   Future<void> playTrack({
     required String url,
@@ -194,6 +200,7 @@ class AppProvider extends ChangeNotifier {
     required String album,
   }) async {
     try {
+      await _ensureAudioSession();
       if (_audioPlayer.playing && _currentReciterId == reciterId && _currentPlayingIndex == trackIndex) {
         await _audioPlayer.pause();
         notifyListeners();
@@ -234,17 +241,15 @@ class AppProvider extends ChangeNotifier {
 
   /// تشغيل بث إذاعي (live stream)
   Future<void> playRadio(String url, String name) async {
-    if (_audioPlayer.playing && _currentRadioUrl == url && _isRadioPlaying) {
-      await _audioPlayer.pause();
-      _isRadioPlaying = false;
-      notifyListeners();
-      return;
-    }
     try {
+      await _ensureAudioSession();
+
+      // إيقاف أي صوت حالي تماماً قبل البدء
+      await _audioPlayer.stop();
+
       _isRadioPlaying = true;
       _currentRadioUrl = url;
 
-      await _audioPlayer.stop();
       await _audioPlayer.setAudioSource(
         AudioSource.uri(
           Uri.parse(url),
@@ -256,16 +261,26 @@ class AppProvider extends ChangeNotifier {
           ),
         ),
       );
-      await _audioPlayer.play();
+
+      // زيادة مهلة الانتظار للبث المباشر
+      await _audioPlayer.play().timeout(const Duration(seconds: 15), onTimeout: () {
+        throw Exception("تأخر الاتصال بالسيرفر، يرجى المحاولة مرة أخرى");
+      });
+
       notifyListeners();
     } catch (e) {
       debugPrint("❌ playRadio error: $e");
       _isRadioPlaying = false;
       _currentRadioUrl = null;
       notifyListeners();
+
       if (navigatorKey.currentContext != null) {
         ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-          SnackBar(content: Text("تعذر الاتصال بالإذاعة: $e"), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text("تعذر تشغيل الإذاعة: ${e.toString().split(':').last}"),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     }
@@ -285,10 +300,8 @@ class AppProvider extends ChangeNotifier {
     required String soundId,
     required String prayerName,
   }) async {
+    await _ensureAudioSession();
     try {
-      await _audioPlayer.stop();
-
-      // استخراج رقم الصوت (adhan_1 -> 1.mp3)
       final soundNum = soundId.replaceAll(RegExp(r'[^0-9]'), '');
       final assetPath = 'assets/sounds/${soundNum.isEmpty ? '1' : soundNum}.mp3';
 
@@ -311,6 +324,7 @@ class AppProvider extends ChangeNotifier {
       _isRadioPlaying = false;
       _currentRadioUrl = null;
 
+      await _audioPlayer.setVolume(1.0);
       await _audioPlayer.play();
       notifyListeners();
 
@@ -360,7 +374,10 @@ class AppProvider extends ChangeNotifier {
 
       if (_cachedPrayerTimes == null || _cachedPrayerTimes!.dateEn != today) {
         try {
-          _cachedPrayerTimes = await ApiService().getPrayerTimes();
+          final fetched = await ApiService().getPrayerTimes();
+          _cachedPrayerTimes = fetched;
+          // إعادة جدولة منبهات وإشعارات الأذان عند تحديث المواقيت
+          NotificationService().scheduleEnabledPrayers(fetched);
         } catch (_) {}
       }
 
@@ -421,13 +438,17 @@ class AppProvider extends ChangeNotifier {
       final parts = dateStr.split('-');
       if (parts.length == 3) {
         try {
-          return DateTime(
-            int.parse(parts[0]),
-            int.parse(parts[1]),
-            int.parse(parts[2]),
-            hour,
-            minute,
-          );
+          int year, month, day;
+          if (parts[0].length == 4) {
+            year = int.parse(parts[0]);
+            month = int.parse(parts[1]);
+            day = int.parse(parts[2]);
+          } else {
+            day = int.parse(parts[0]);
+            month = int.parse(parts[1]);
+            year = int.parse(parts[2]);
+          }
+          return DateTime(year, month, day, hour, minute);
         } catch (_) {}
       }
     }

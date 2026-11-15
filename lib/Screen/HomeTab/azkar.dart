@@ -128,11 +128,13 @@ class _AzkarItemCard extends StatefulWidget {
 
 class _AzkarItemCardState extends State<_AzkarItemCard> {
   late int _remaining;
+  late final int _total;
 
   @override
   void initState() {
     super.initState();
-    _remaining = int.tryParse(widget.item.count) ?? 1;
+    _total = int.tryParse(widget.item.count) ?? 1;
+    _remaining = _total;
   }
 
   void _decrement() {
@@ -143,50 +145,114 @@ class _AzkarItemCardState extends State<_AzkarItemCard> {
     }
   }
 
+  void _reset() {
+    setState(() {
+      _remaining = _total;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDone = _remaining == 0;
     return Card(
-      color: widget.isDark ? Colors.white10 : Colors.grey[100],
+      color: widget.isDark
+          ? (isDone ? Colors.green.withValues(alpha: 0.15) : Colors.white10)
+          : (isDone ? Colors.green.shade50 : Colors.grey[100]),
       margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isDone ? Colors.green : Colors.transparent,
+          width: 1.5,
+        ),
+      ),
       child: InkWell(
         onTap: _decrement,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(15.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
                 widget.item.zekr,
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w600,
                   color: widget.isDark ? Colors.white : Colors.black87,
-                  height: 1.5,
+                  height: 1.6,
                 ),
                 textAlign: TextAlign.center,
                 textDirection: TextDirection.rtl,
               ),
-              const SizedBox(height: 10),
-              if (widget.item.description.isNotEmpty)
+              if (widget.item.description.isNotEmpty) ...[
+                const SizedBox(height: 10),
                 Text(
                   widget.item.description,
-                  style: const TextStyle(fontSize: 14, color: AppColors.yellow),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.yellow,
+                    fontStyle: FontStyle.italic,
+                  ),
                   textAlign: TextAlign.center,
                   textDirection: TextDirection.rtl,
                 ),
-              const SizedBox(height: 10),
-              Center(
-                child: GestureDetector(
-                  onTap: _decrement,
-                  child: CircleAvatar(
-                    backgroundColor: _remaining > 0 ? AppColors.yellow : Colors.grey,
-                    radius: 18,
-                    child: Text(
-                      '$_remaining',
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+              ],
+              if (widget.item.reference.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  widget.item.reference,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: widget.isDark ? Colors.white54 : Colors.black54,
+                  ),
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.rtl,
+                ),
+              ],
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: _decrement,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isDone ? Colors.green : AppColors.yellow,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isDone ? Icons.check_circle : Icons.touch_app_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            isDone ? 'تم الانتهاء' : '$_remaining / $_total',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                  if (isDone) ...[
+                    const SizedBox(width: 12),
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded, size: 22),
+                      color: AppColors.yellow,
+                      tooltip: 'إعادة التكرار',
+                      onPressed: _reset,
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

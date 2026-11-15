@@ -19,26 +19,32 @@ class _RadioTabState extends State<RadioTab> {
   final CacheService _cacheService = CacheService();
   Set<int> _favoriteIds = {};
 
-  // قائمة الإذاعات الإسلامية بث مباشر (HTTPS ومجربة عبر شبكة Mp3Quran و Mp3Islam الرسمية)
+  // بث مباشر مباشر من سيرفرات Holol — صيغ HLS (m3u8) تعمل بدون تحويل
   static const List<RadioItem> _islamicRadios = [
-    RadioItem(id: 1, name: 'إذاعة القرآن الكريم من القاهرة', url: 'https://stream.radiojar.com/8s5u5tpdtwzuv'),
-    RadioItem(id: 2, name: 'راديو القرآن – محمد صديق المنشاوي', url: 'https://qurango.net/radio/mohammed_siddiq_alminshawi'),
-    RadioItem(id: 3, name: 'إذاعة القرآن الكريم – مختارات تلاوات', url: 'https://qurango.net/radio/mix'),
-    RadioItem(id: 4, name: 'إذاعة تراتيل قصار السور', url: 'https://qurango.net/radio/tarateel'),
-    RadioItem(id: 5, name: 'راديو القرآن – عبد الباسط عبد الصمد (المجود)', url: 'https://qurango.net/radio/abdulbasit_abdulsamad_mojawwad'),
-    RadioItem(id: 6, name: 'راديو القرآن – محمود خليل الحصري', url: 'https://qurango.net/radio/mahmoud_khalil_alhussary'),
-    RadioItem(id: 7, name: 'راديو القرآن – محمد محمود الطبلاوي', url: 'https://qurango.net/radio/mohammad_altablaway'),
-    RadioItem(id: 8, name: 'راديو القرآن – مشاري راشد العفاسي', url: 'https://radio.mp3islam.com/listen/mishary/radio.mp3'),
-    RadioItem(id: 9, name: 'راديو القرآن – سعود الشريم', url: 'https://radio.mp3islam.com/listen/alshuraim/radio.mp3'),
-    RadioItem(id: 10, name: 'إذاعة القرآن الكريم – الشارقة', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/icecast.audio'),
-    RadioItem(id: 11, name: 'إذاعة القرآن الكريم – الكويت', url: 'https://radio.mp3islam.com/listen/quran_radio/radio.mp3'),
-    RadioItem(id: 12, name: 'إذاعة القرآن الكريم – البحرين', url: 'https://5c7b683162943.streamlock.net/live/ngrp:radio-106-1_all/playlist.m3u8'),
-    RadioItem(id: 13, name: 'إذاعة القرآن الكريم – عُمَان', url: 'https://partwota.cdn.mgmlcdn.com/quranrdoorg/quranrdo.stream_aac/chunklist.m3u8'),
-    RadioItem(id: 14, name: 'إذاعة القرآن الكريم – الأردن', url: 'https://jrtv-live.ercdn.net/jrradio/quranradio.m3u8'),
-    RadioItem(id: 15, name: 'إذاعة القرآن الكريم من مكة المكرمة', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/icecast.audio'),
-    RadioItem(id: 16, name: 'إذاعة القرآن الكريم من المدينة المنورة', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/radio.mp3'),
-    RadioItem(id: 17, name: 'إذاعة القرآن الكريم – تلاوات مختارة (القاهرة)', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/tilawah.mp3'),
-    RadioItem(id: 18, name: 'إذاعة القرآن الكريم – تجويد (القاهرة)', url: 'https://l3.itworkscdn.net/smcquranlive/quranradiolive/tajweed.mp3'),
+    RadioItem(id: 1, name: 'إذاعة أبو بكر الشاطري', url: 'https://backup.qurango.net/radio/shaik_abu_bakr_al_shatri'),
+    RadioItem(id: 2, name: 'إذاعة أحمد خضر الطرابلسي', url: 'https://backup.qurango.net/radio/ahmad_khader_altarabulsi'),
+    RadioItem(id: 3, name: 'إذاعة إبراهيم الأخضر', url: 'https://backup.qurango.net/radio/ibrahim_alakdar'),
+    RadioItem(id: 4, name: 'إذاعة خالد الجليل', url: 'https://backup.qurango.net/radio/khalid_aljileel'),
+    RadioItem(id: 5, name: 'إذاعة صلاح الهاشم', url: 'https://backup.qurango.net/radio/salah_alhashim'),
+    RadioItem(id: 6, name: 'إذاعة صلاح بو خاطر', url: 'https://backup.qurango.net/radio/slaah_bukhatir'),
+    RadioItem(id: 7, name: 'إذاعة عبدالباسط عبدالصمد', url: 'https://backup.qurango.net/radio/abdulbasit_abdulsamad_mojawwad'),
+    RadioItem(id: 8, name: 'إذاعة عبد العزيز سحيم', url: 'https://backup.qurango.net/radio/a_sheim'),
+    RadioItem(id: 9, name: 'إذاعة فارس عباد', url: 'https://backup.qurango.net/radio/fares_abbad'),
+    RadioItem(id: 10, name: 'إذاعة ماهر المعيقلي', url: 'https://backup.qurango.net/radio/maher'),
+    RadioItem(id: 11, name: 'إذاعة محمد صديق المنشاوي', url: 'https://backup.qurango.net/radio/mohammed_siddiq_alminshawi_mojawwad'),
+    RadioItem(id: 12, name: 'إذاعة محمود خليل الحصري', url: 'https://backup.qurango.net/radio/mahmoud_khalil_alhussary_mojawwad'),
+    RadioItem(id: 13, name: 'إذاعة محمود علي البنا', url: 'https://backup.qurango.net/radio/mahmoud_ali__albanna_mojawwad'),
+    RadioItem(id: 14, name: 'إذاعة مشاري العفاسي', url: 'https://backup.qurango.net/radio/mishary_alafasi'),
+    RadioItem(id: 15, name: 'إذاعة ناصر القطامي', url: 'https://backup.qurango.net/radio/nasser_alqatami'),
+    RadioItem(id: 16, name: 'إذاعة نبيل الرفاعي', url: 'https://backup.qurango.net/radio/nabil_al_rifay'),
+    RadioItem(id: 17, name: 'إذاعة هيثم الجدعاني', url: 'https://backup.qurango.net/radio/hitham_aljadani'),
+    RadioItem(id: 18, name: 'إذاعة ياسر الدوسري', url: 'https://backup.qurango.net/radio/yasser_aldosari'),
+    RadioItem(id: 19, name: 'إذاعة القرآن الكريم - القاهرة', url: 'https://n0e.radiojar.com/8s5u5tpdtwzuv'),
+    RadioItem(id: 20, name: 'إذاعة السنة النبوية', url: 'https://n01.radiojar.com/x0vs2vzy6k0uv'),
+    RadioItem(id: 21, name: 'إذاعة تلاوات خاشعة', url: 'https://backup.qurango.net/radio/salma'),
+    RadioItem(id: 22, name: 'إذاعة الرقية الشرعية', url: 'https://backup.qurango.net/radio/roqiah'),
+    RadioItem(id: 23, name: 'إذاعة تكبيرات العيد', url: 'https://backup.qurango.net/radio/eid'),
+    RadioItem(id: 24, name: 'المختصر في تفسير القرآن', url: 'https://backup.qurango.net/radio/mukhtasartafsir'),
   ];
 
   @override
@@ -85,7 +91,6 @@ class _RadioTabState extends State<RadioTab> {
     }
 
     if (provider.audioPlayer.playing) {
-      // أي صوت آخر (تلاوة إلخ) → نوقفه ونبدأ الإذاعة
       await provider.stopTrack();
     }
 
@@ -157,9 +162,14 @@ class _RadioTabState extends State<RadioTab> {
           ),
           textAlign: TextAlign.center,
         ),
+        subtitle: null,
         trailing: IconButton(
           icon: Icon(
-            (isCurrent && provider.audioPlayer.playing) ? Icons.pause_circle_filled : Icons.play_circle_filled,
+            provider.isRadioPlaying &&
+                    provider.currentRadioUrl == radio.url &&
+                    provider.audioPlayer.playing
+                ? Icons.pause_circle_filled
+                : Icons.play_circle_filled,
             color: AppColors.yellow,
             size: 40,
           ),
@@ -186,47 +196,50 @@ class _RadioTabState extends State<RadioTab> {
     }
     tiles.addAll(others.map((r) => _radioTile(r, provider)));
 
-    return Column(
-      children: [
-        const SizedBox(height: 50),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(25),
-              border: Border.all(color: AppColors.yellow, width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.yellow.withValues(alpha: 0.3),
-                  blurRadius: 15,
-                  spreadRadius: 2,
-                )
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
-              child: Image.asset(AppImage.radioPage),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          const SizedBox(height: 50),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: AppColors.yellow, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.yellow.withValues(alpha: 0.3),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                  )
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: Image.asset(AppImage.radioPage),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 30),
-        Text(
-          "إذاعة القرآن الكريم",
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: provider.isDarkMode() ? AppColors.blackDark : AppColors.yellow,
+          const SizedBox(height: 30),
+          Text(
+            "إذاعة القرآن الكريم",
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: provider.isDarkMode() ? AppColors.blackDark : AppColors.yellow,
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
-        Expanded(
-          child: ListView.builder(
+          const SizedBox(height: 20),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: tiles.length,
             itemBuilder: (context, index) => tiles[index],
           ),
-        ),
-      ],
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 }

@@ -24,10 +24,24 @@ class AzkarResponse {
     List<AzkarCategory> list = [];
     json.forEach((key, value) {
       if (value is List) {
-        list.add(AzkarCategory(
-          categoryName: categoryNames[key] ?? key,
-          azkar: value.map((i) => AzkarItem.fromJson(i)).toList(),
-        ));
+        List<AzkarItem> items = [];
+        for (var el in value) {
+          if (el is List) {
+            for (var sub in el) {
+              if (sub is Map<String, dynamic>) {
+                items.add(AzkarItem.fromJson(sub));
+              }
+            }
+          } else if (el is Map<String, dynamic>) {
+            items.add(AzkarItem.fromJson(el));
+          }
+        }
+        if (items.isNotEmpty) {
+          list.add(AzkarCategory(
+            categoryName: categoryNames[key] ?? key,
+            azkar: items,
+          ));
+        }
       }
     });
     return AzkarResponse(categories: list);
@@ -45,18 +59,29 @@ class AzkarItem {
   final String zekr;
   final String count;
   final String description;
+  final String reference;
 
   AzkarItem({
     required this.zekr,
     required this.count,
     required this.description,
+    this.reference = '',
   });
 
   factory AzkarItem.fromJson(Map<String, dynamic> json) {
+    final rawCount = json['count'];
+    String parsedCount = '1';
+    if (rawCount != null) {
+      final s = rawCount.toString().trim();
+      if (s.isNotEmpty && s != '0') {
+        parsedCount = s;
+      }
+    }
     return AzkarItem(
-      zekr: json['text'] ?? "",
-      count: (json['count'] ?? 1).toString(),
-      description: "",
+      zekr: (json['content'] ?? json['text'] ?? "").toString().trim(),
+      count: parsedCount,
+      description: (json['description'] ?? "").toString().trim(),
+      reference: (json['reference'] ?? "").toString().trim(),
     );
   }
 }

@@ -46,8 +46,6 @@ class _SettingsTabState extends State<SettingsTab> {
             const SizedBox(height: 30),
             _infoCard(isDark, "الوصف", "تطبيق إسلامي شامل يحتوي على القرآن الكريم، مواقيت الصلاة، الراديو، الأذكار والأدعية، والتفسير"),
             const SizedBox(height: 12),
-            _infoCard(isDark, "المطور", "محمد سلام"),
-            const SizedBox(height: 12),
             _infoCard(isDark, "الترخيص", "جميع الحقوق محفوظة © 2026"),
             const SizedBox(height: 40),
             Text(

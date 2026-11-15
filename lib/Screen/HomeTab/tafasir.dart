@@ -70,7 +70,7 @@ class TafasirTab extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                "تفسير سورة $suraName",
+                "تفسير  $suraName",
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.yellow),
               ),
               const Divider(color: AppColors.yellow),

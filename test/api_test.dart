@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:islami/services/api_service.dart';
@@ -7,9 +8,12 @@ import 'package:islami/models/surah_api_model.dart';
 import 'package:islami/models/tafsir_model.dart';
 import 'package:flutter/foundation.dart';
 
+class _RealHttpOverrides extends HttpOverrides {}
+
 void main() {
   // CacheService بتستخدم SharedPreferences، فمحتاجين binding + mock في التوستات
   TestWidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = _RealHttpOverrides();
   SharedPreferences.setMockInitialValues({});
 
   group('ApiService Integration Tests', () {
@@ -40,7 +44,7 @@ void main() {
       final tafsirData = await apiService.getTafsir(114);
       expect(tafsirData, isA<TafsirResponse>());
       expect(tafsirData.result, isNotEmpty);
-      expect(tafsirData.result.first.arabicText, contains('قُلْ أَعُوذُ بِرَبِّ النَّاسِ'));
+      expect(tafsirData.result.first.arabicText, contains('أَعُوذُ بِرَبِّ'));
       debugPrint('✓ Tafsir API OK: Found interpretation for Surah ${tafsirData.result.first.sura}');
     });
   });
