@@ -15,6 +15,7 @@ import 'package:islami/Screen/HomeTab/laylat_al_qadr_screen.dart';
 import 'package:islami/Screen/HomeTab/reciter_audio_screen.dart';
 import 'package:islami/Screen/HomeTab/azkar_screen.dart';
 import 'package:islami/Screen/HomeTab/duas_screen.dart';
+import 'package:islami/Screen/HomeTab/tasabeeh_screen.dart';
 import 'package:islami/dezeen/shiar.dart';
 import 'package:islami/dezeen/theme.dart';
 import 'package:islami/dezeen/connectivity_service.dart';
@@ -189,6 +190,7 @@ class _MyAppState extends State<MyApp> {
               const ReciterAudioScreen(reciterId: 112),
           AzkarScreen.routeName: (_) => const AzkarScreen(),
           DuasScreen.routeName: (_) => const DuasScreen(),
+          TasabeehScreen.routeName: (_) => const TasabeehScreen(),
         };
 
         return MaterialApp(

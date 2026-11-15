@@ -36,11 +36,9 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final service = NotificationService();
 
-      // جدولة وقت سابق (يجب نقله تلقائياً إلى الغد)
       final past = DateTime.now().subtract(const Duration(hours: 2));
       await service.schedulePrayerNotification(1, 'الظهر', past);
 
-      // جدولة وقت قادم
       final future = DateTime.now().add(const Duration(hours: 2));
       await service.schedulePrayerNotification(2, 'العصر', future);
 
@@ -48,7 +46,7 @@ void main() {
       expect(schedules.length, 2);
     });
 
-    test('scheduleEnabledPrayers schedules all 5 prayers when enabled', () async {
+    test('scheduleEnabledPrayers schedules exact prayer times for all 5 prayers', () async {
       SharedPreferences.setMockInitialValues({});
       final service = NotificationService();
       final times = PrayerTimes(
@@ -68,6 +66,23 @@ void main() {
       await service.scheduleEnabledPrayers(times);
       final schedules = log.where((m) => m.method == 'zonedSchedule').toList();
       expect(schedules.length, 5);
+
+      // Verify all 5 prayer IDs (0 to 4) are scheduled
+      final ids = schedules.map((m) => (m.arguments as Map)['id'] as int).toList();
+      expect(ids, containsAll([0, 1, 2, 3, 4]));
+
+      // Verify titles correspond to prayer names
+      titles: for (final call in schedules) {
+        final args = call.arguments as Map;
+        final title = args['title'] as String;
+        expect(title, anyOf([
+          contains('الفجر'),
+          contains('الظهر'),
+          contains('العصر'),
+          contains('المغرب'),
+          contains('العشاء'),
+        ]));
+      }
     });
   });
 }

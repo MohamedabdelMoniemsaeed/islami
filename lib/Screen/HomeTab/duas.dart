@@ -14,9 +14,7 @@ class DuasTab extends StatefulWidget {
 
 class _DuasTabState extends State<DuasTab> {
   final ApiService _apiService = ApiService();
-
-  // الطلب اتولد مرة واحدة في initState (مش كل rebuild من Provider)
-  late final Future<DuasResponse> _duas;
+  late Future<DuasResponse> _duas;
 
   @override
   void initState() {
@@ -24,15 +22,22 @@ class _DuasTabState extends State<DuasTab> {
     _duas = _apiService.getDuas();
   }
 
+  void _reloadDuas() {
+    setState(() {
+      _duas = _apiService.getDuas();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
+    final isDark = provider.isDarkMode();
 
     return Column(
       children: [
         const SizedBox(height: 20),
         const Text(
-          "الأدعية المستجابة",
+          "الأدعية",
           style: TextStyle(
             color: AppColors.yellow,
             fontSize: 28,
@@ -48,10 +53,45 @@ class _DuasTabState extends State<DuasTab> {
                 return const Center(
                     child: CircularProgressIndicator(color: AppColors.yellow));
               } else if (snapshot.hasError) {
-                return const Center(child: Text("خطأ في تحميل الأدعية"));
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "خطأ في تحميل الأدعية",
+                        style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 16),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.yellow),
+                        onPressed: _reloadDuas,
+                        child: const Text("إعادة المحاولة", style: TextStyle(color: Colors.black)),
+                      ),
+                    ],
+                  ),
+                );
               }
 
-              final categories = snapshot.data!.categories;
+              final categories = snapshot.data?.categories ?? [];
+              if (categories.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "لا توجد أدعية متاحة حالياً",
+                        style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 16),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.yellow),
+                        onPressed: _reloadDuas,
+                        child: const Text("إعادة المحاولة", style: TextStyle(color: Colors.black)),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
               return ListView.separated(
                 itemCount: categories.length,
@@ -68,9 +108,7 @@ class _DuasTabState extends State<DuasTab> {
                       child: Text(
                         categories[index].categoryName,
                         style: TextStyle(
-                          color: provider.isDarkMode()
-                              ? Colors.white
-                              : Colors.black,
+                          color: isDark ? Colors.white : Colors.black,
                           fontSize: 22,
                         ),
                         textAlign: TextAlign.center,

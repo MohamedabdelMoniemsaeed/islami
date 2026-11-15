@@ -20,6 +20,7 @@ import 'package:islami/Screen/HomeTab/tafsir_details_screen.dart';
 import 'package:islami/Screen/HomeTab/reciter_audio_screen.dart';
 import 'package:islami/Screen/HomeTab/azkar_screen.dart';
 import 'package:islami/Screen/HomeTab/duas_screen.dart';
+import 'package:islami/Screen/HomeTab/tasabeeh_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   static const String routeName = "Home";
@@ -210,6 +211,11 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildDrawerItem(Icons.favorite, "الأدعية", () {
               Navigator.pop(context);
               Navigator.pushNamed(context, DuasScreen.routeName);
+            }, isDark),
+            const Divider(),
+            _buildDrawerItem(Icons.spa, "التسابيح", () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, TasabeehScreen.routeName);
             }, isDark),
           ],
         ),

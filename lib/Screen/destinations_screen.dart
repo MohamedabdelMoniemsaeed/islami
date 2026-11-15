@@ -11,6 +11,7 @@ import 'package:islami/Screen/HomeTab/tafsir_index_screen.dart';
 import 'package:islami/Screen/HomeTab/reciter_audio_screen.dart';
 import 'package:islami/Screen/HomeTab/azkar_screen.dart';
 import 'package:islami/Screen/HomeTab/duas_screen.dart';
+import 'package:islami/Screen/HomeTab/tasabeeh_screen.dart';
 import 'package:provider/provider.dart';
 
 /// شاشة الوجهات: أيقونات دائرية (اسم تحت كل أيقونة) تفتح الشاشات الموجودة
@@ -202,6 +203,7 @@ const _destinations = [
       routeArgs: {'reciter_id': 112}),
   _Destination("azkar", "الأذكار", icon: Icons.auto_awesome, route: AzkarScreen.routeName),
   _Destination("duas", "الأدعية", icon: Icons.favorite, route: DuasScreen.routeName),
+  _Destination("tasabeeh", "التسابيح", icon: Icons.spa, route: TasabeehScreen.routeName),
 ];
 
 /// هلال ونجمة مرسومة بدائرتين (القصّية بلون خلفية الدائرة عشان تدمج) + نجمة،
