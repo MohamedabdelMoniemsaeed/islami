@@ -32,7 +32,7 @@ class AppProvider extends ChangeNotifier {
   List<String> _destinationOrder = [
     'quran', 'radio', 'prayer', 'settings',
     'surah_index', 'tafsir_index', 'reciter',
-    'azkar', 'duas',
+    'azkar', 'duas', 'tasabeeh',
   ];
 
   // مشغل الصوت المشترك
@@ -162,8 +162,19 @@ class AppProvider extends ChangeNotifier {
   Future<void> loadDestinationOrder() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getStringList('destination_order');
-    if (saved != null && saved.length == _destinationOrder.length) {
-      _destinationOrder = saved;
+    if (saved != null) {
+      final currentIds = [
+        'quran', 'radio', 'prayer', 'settings',
+        'surah_index', 'tafsir_index', 'reciter',
+        'azkar', 'duas', 'tasabeeh',
+      ];
+      final validSaved = saved.where((id) => currentIds.contains(id)).toList();
+      for (var id in currentIds) {
+        if (!validSaved.contains(id)) {
+          validSaved.add(id);
+        }
+      }
+      _destinationOrder = validSaved;
       notifyListeners();
     }
   }

@@ -5,6 +5,7 @@ import 'package:islami/dezeen/images.dart';
 import 'package:islami/dezeen/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:islami/dezeen/shiar.dart';
+import 'package:just_audio/just_audio.dart';
 
 class TasabeehScreen extends StatefulWidget {
   static const String routeName = "TasabeehScreen";
@@ -16,6 +17,30 @@ class TasabeehScreen extends StatefulWidget {
 }
 
 class _TasabeehScreenState extends State<TasabeehScreen> {
+  late final AudioPlayer _audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playSound() async {
+    try {
+      await _audioPlayer.setAsset('assets/sounds/1.mp3');
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.play();
+    } catch (e) {
+      debugPrint("Tasabeeh audio error: $e");
+    }
+  }
+
   final List<Map<String, dynamic>> _tasabeehList = [
     {
       "text": "سُبْحَانَ اللَّهِ",
@@ -87,7 +112,22 @@ class _TasabeehScreenState extends State<TasabeehScreen> {
 
   void _incrementCount(int index) {
     setState(() {
-      _tasabeehList[index]["count"] = (_tasabeehList[index]["count"] as int) + 1;
+      int count = _tasabeehList[index]["count"] as int;
+      int target = _tasabeehList[index]["target"] as int;
+      if (count < target) {
+        count++;
+        _tasabeehList[index]["count"] = count;
+        if (count == target) {
+          _playSound();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("تم بحمد الله إتمام الـ 100 تسبيحة 🌟"),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
     });
   }
 
@@ -136,13 +176,15 @@ class _TasabeehScreenState extends State<TasabeehScreen> {
             final count = item["count"] as int;
             final target = item["target"] as int;
             final progress = (count / target).clamp(0.0, 1.0);
+            final bool isCompleted = count >= target;
+            final Color activeColor = isCompleted ? Colors.green : AppColors.yellow;
 
             return Card(
               color: isDark ? AppColors.yellowDark : Colors.white.withValues(alpha: 0.95),
               margin: const EdgeInsets.symmetric(vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: AppColors.yellow.withValues(alpha: 0.5)),
+                side: BorderSide(color: activeColor.withValues(alpha: 0.5)),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -175,7 +217,7 @@ class _TasabeehScreenState extends State<TasabeehScreen> {
                     LinearProgressIndicator(
                       value: progress,
                       backgroundColor: isDark ? Colors.black26 : Colors.grey[200],
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.yellow),
+                      valueColor: AlwaysStoppedAnimation<Color>(activeColor),
                       minHeight: 6,
                     ),
                     const SizedBox(height: 12),
@@ -193,11 +235,11 @@ class _TasabeehScreenState extends State<TasabeehScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                             decoration: BoxDecoration(
-                              color: AppColors.yellow,
+                              color: activeColor,
                               borderRadius: BorderRadius.circular(30),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.yellow.withValues(alpha: 0.4),
+                                  color: activeColor.withValues(alpha: 0.4),
                                   blurRadius: 8,
                                   offset: const Offset(0, 3),
                                 ),
@@ -205,10 +247,10 @@ class _TasabeehScreenState extends State<TasabeehScreen> {
                             ),
                             child: Text(
                               "$count / $target",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                                color: isCompleted ? Colors.white : Colors.black,
                               ),
                             ),
                           ),
