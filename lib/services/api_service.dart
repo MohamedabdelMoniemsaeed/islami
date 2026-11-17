@@ -9,6 +9,10 @@ import 'package:islami/models/tafsir_model.dart';
 import 'package:islami/models/azkar_model.dart';
 import 'package:islami/models/duas_model.dart';
 import 'package:islami/services/cache_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tzdata;
 
 class ApiService {
   static const String _prayerBaseUrl = 'https://api.aladhan.com/v1/timings?latitude=30.0444&longitude=31.2357&method=4';
@@ -44,13 +48,89 @@ class ApiService {
     }
   }
 
-  Future<PrayerTimes> getPrayerTimes() async {
+  String _translateArea(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('zagazig') || lower.contains('الزقازيق')) return 'الزقازيق';
+    if (lower.contains('sharqia') || lower.contains('الشرقية') || lower.contains('sharkia')) return 'الشرقية';
+    if (lower.contains('cairo') || lower.contains('القاهرة')) return 'القاهرة';
+    if (lower.contains('giza') || lower.contains('الجيزة')) return 'الجيزة';
+    if (lower.contains('alexandria') || lower.contains('الإسكندرية') || lower.contains('alex')) return 'الإسكندرية';
+    if (lower.contains('mansoura') || lower.contains('المنصورة') || lower.contains('dakahlia')) return 'الدقهلية';
+    if (lower.contains('tanta') || lower.contains('طنطا') || lower.contains('gharbia')) return 'الغربية';
+    if (lower.contains('banha') || lower.contains('بنها') || lower.contains('qalyubia')) return 'القليوبية';
+    if (lower.contains('shebin') || lower.contains('شبين') || lower.contains('monufia')) return 'المنوفية';
+    if (lower.contains('damanhour') || lower.contains('دمنهور') || lower.contains('beheira')) return 'البحيرة';
+    if (lower.contains('fayoum') || lower.contains('الفيوم')) return 'الفيوم';
+    if (lower.contains('beni suef') || lower.contains('بني سويف')) return 'بني سويف';
+    if (lower.contains('minya') || lower.contains('المنيا')) return 'المنيا';
+    if (lower.contains('asyut') || lower.contains('أسيوط')) return 'أسيوط';
+    if (lower.contains('sohag') || lower.contains('سوهاج')) return 'سوهاج';
+    if (lower.contains('qena') || lower.contains('قنا')) return 'قنا';
+    if (lower.contains('luxor') || lower.contains('الأقصر')) return 'الأقصر';
+    if (lower.contains('aswan') || lower.contains('أسوان')) return 'أسوان';
+    // if no match, return the Arabic transliteration or the original if it contains Arabic
+    if (raw.contains('؀-ۿ')) return raw; // already Arabic
+    return raw;
+  }
+
+  Future<PrayerTimes> getPrayerTimes({double? lat, double? lon}) async {
+    double latitude = lat ?? 30.0444;
+    double longitude = lon ?? 31.2357;
+    String customRegion = "";
+    String customCountry = "";
+
+    // Always try to get fresh GPS position unless explicit coords provided
+    if (lat == null || lon == null) {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (serviceEnabled) {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+          try {
+            Position position = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high,
+              forceAndroidLocationManager: false,
+              timeLimit: const Duration(seconds: 10),
+            );
+            latitude = position.latitude;
+            longitude = position.longitude;
+          } catch (_) {}
+        }
+      }
+    }
+
+    // Reverse geocoding with robust fallbacks
     try {
-      final response = await http.get(Uri.parse(_prayerBaseUrl)).timeout(const Duration(seconds: 30));
+      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        String rawCity = place.locality ?? place.subAdministrativeArea ?? place.administrativeArea ?? "";
+        String rawCountry = place.country ?? "";
+        if (rawCity.isNotEmpty) {
+          customRegion = _translateArea(rawCity);
+        }
+        if (rawCountry.isNotEmpty) {
+          customCountry = rawCountry.toLowerCase().contains('egypt') ? 'مصر' : rawCountry;
+        }
+      }
+    } catch (e) {
+      print("Reverse geocoding error: $e");
+    }
+
+    final prayerUrl = 'https://api.aladhan.com/v1/timings?latitude=$latitude&longitude=$longitude&method=4';
+
+    try {
+      final response = await http.get(Uri.parse(prayerUrl)).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final decodedBody = utf8.decode(response.bodyBytes);
         await _cacheService.saveData(CacheService.keyPrayerTimes, decodedBody);
-        return PrayerTimes.fromJson(json.decode(decodedBody));
+        var times = PrayerTimes.fromJson(json.decode(decodedBody));
+        if (customRegion.isNotEmpty) {
+          return times.copyWith(region: customRegion, country: customCountry);
+        }
+        return times;
       }
       throw Exception('Failed to load from server');
     } catch (e) {

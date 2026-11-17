@@ -377,7 +377,7 @@ class _PrayerTimesTabState extends State<PrayerTimesTab> {
         ? "${times.region}، ${times.country}"
         : (times.region.isNotEmpty
             ? times.region
-            : (times.country.isNotEmpty ? times.country : "القاهرة، مصر"));
+            : (times.country.isNotEmpty ? times.country : ""));
 
     String gregorianFormatted = times.dateEn;
     try {

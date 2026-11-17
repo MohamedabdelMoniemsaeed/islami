@@ -302,8 +302,11 @@ class AppProvider extends ChangeNotifier {
   PrayerTimes? _cachedPrayerTimes;
   String? _lastPlayedAdhanKey;
 
+  PrayerTimes? get cachedPrayerTimes => _cachedPrayerTimes;
+
   void updateCachedPrayerTimes(PrayerTimes times) {
     _cachedPrayerTimes = times;
+    notifyListeners();
   }
 
   /// تشغيل الأذان بصوت المؤذن المختار

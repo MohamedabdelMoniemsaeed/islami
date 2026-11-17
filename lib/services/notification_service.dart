@@ -280,7 +280,7 @@ class NotificationService {
       sound: RawResourceAndroidNotificationSound(soundId),
       audioAttributesUsage: AudioAttributesUsage.alarm,
       category: AndroidNotificationCategory.alarm,
-      fullScreenIntent: true,
+      fullScreenIntent: false,
       visibility: NotificationVisibility.public,
       ticker: 'حان الآن موعد أذان $title',
       styleInformation: BigTextStyleInformation(
@@ -303,25 +303,7 @@ class NotificationService {
       targetTime.minute,
     );
 
-    // 1. المحاولة بـ alarmClock وتكرار يومي (أعلى دقة ومستوى منبه حقيقي يتجاوز قفل الشاشة والوضع الصامت)
-    try {
-      await _notificationsPlugin.zonedSchedule(
-        id,
-        'موعد أذان $title',
-        'حان الآن موعد أذان صلاة $title',
-        scheduledDate,
-        notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.alarmClock,
-        matchDateTimeComponents: DateTimeComponents.time,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-      );
-      return;
-    } catch (e) {
-      debugPrint("alarmClock schedule failed for $title: $e, falling back to exactAllowWhileIdle");
-    }
-
-    // 2. المحاولة البديلة بـ exactAllowWhileIdle مع التكرار اليومي
+    // 1. المحاولة الأولى بـ exactAllowWhileIdle مع التكرار اليومي (أكثر استقراراً في الخلفية وعند إغلاق التطبيق)
     try {
       await _notificationsPlugin.zonedSchedule(
         id,
@@ -336,7 +318,25 @@ class NotificationService {
       );
       return;
     } catch (e) {
-      debugPrint("exactAllowWhileIdle schedule failed for $title: $e, falling back to inexact");
+      debugPrint("exactAllowWhileIdle schedule failed for $title: $e, falling back to alarmClock");
+    }
+
+    // 2. المحاولة البديلة بـ alarmClock
+    try {
+      await _notificationsPlugin.zonedSchedule(
+        id,
+        'موعد أذان $title',
+        'حان الآن موعد أذان صلاة $title',
+        scheduledDate,
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
+        matchDateTimeComponents: DateTimeComponents.time,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      return;
+    } catch (e) {
+      debugPrint("alarmClock schedule failed for $title: $e, falling back to inexact");
     }
 
     // 3. المحاولة البديلة بـ inexact (تضمن وصول الإشعار حتى بدون صلاحية المنبه الدقيق)

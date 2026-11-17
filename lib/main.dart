@@ -137,6 +137,7 @@ class _MyAppState extends State<MyApp> {
     try {
       await Permission.notification.request();
       await Permission.scheduleExactAlarm.request();
+      await Permission.ignoreBatteryOptimizations.request();
     } catch (e) {
       debugPrint("Permission error: $e");
     }
